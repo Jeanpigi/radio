@@ -1,0 +1,169 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap");
+
+:root {
+  --background: #e0e5ec;
+  --gray: #797d7f;
+  --white: #fff;
+  --black: #24292e;
+  --button: #f4782b;
+  --hoveButton: #e8531b;
+  --whatsapp: #25d366;
+  --select-border: #777;
+  --select-focus: blue;
+  --select-arrow: var(--select-border);
+}
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 62.5%;
+  font-family: "Raleway", sans-serif;
+}
+
+body {
+  /* Asegúrate de que el margin del body sea 0 */
+  margin: 0;
+  /* Ajusta el padding-bottom para igualar la altura del footer */
+  padding-bottom: 80px;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Estilos de Header*/
+.container__header {
+  background: linear-gradient(to right, #472513, #000000, #382d21);
+  height: 10vh;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  position: relative;
+  /* Establece la posición relativa para que los elementos posicionados dentro de .logo se ajusten a ella */
+  overflow: visible;
+  /* Permite que los elementos se salgan del contenedor */
+}
+
+.logo img {
+  height: 100px;
+}
+
+.list__url {
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-gap: 40px;
+}
+
+.list__li {
+  margin-left: 10px;
+  font-size: 21px;
+  font-weight: 600;
+}
+
+.list__li,
+a {
+  color: var(--white);
+  text-decoration: none;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+/* Estilos de cuerpo Container */
+.container {
+  display: grid;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+  height: 527px;
+}
+
+/* Estilos del reproductor*/
+.content__song {
+  overflow: scroll;
+  height: 332px;
+  background: whitesmoke;
+  margin: 0 auto;
+  padding: 1em;
+  font: 100%/1.4 serif;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+}
+
+.delete-form {
+  display: grid;
+  justify-content: center;
+  grid-auto-columns: 1fr 1fr;
+}
+
+.link__url {
+  color: var(--black);
+  text-decoration: none;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  /* Sombras del texto */
+  font-size: 20px;
+}
+
+/* Estilos del footer*/
+.footer__container {
+  background: #24292e;
+  background-size: cover;
+  background-repeat: no-repeat;
+  align-items: center;
+  bottom: 0;
+  /* Ajusta el ancho del footer al 100% para ocupar todo el ancho de la página */
+  width: 100%;
+  /* Establece aquí la altura que desees para el footer */
+  height: 80px;
+  position: absolute;
+}
+
+.footer__content {
+  display: grid;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+/* Estilos de WhatsApp */
+.whatsapp {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: var(--whatsapp);
+  padding: 10px;
+  border-radius: 50%;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+.whatsapp i {
+  font-size: 24px;
+  color: var(--white);
+}
+
+.whatsapp:hover {
+  background-color: #128c7e;
+}
+
+/* Estilos para pantallas de ancho máximo de 420px (dispositivos móviles) */
+@media screen and (max-width: 420px) {
+  .container {
+    height: auto;
+    /* Sobrescribes el height a "auto" para eliminarlo */
+  }
+
+  .player {
+    width: 280px;
+  }
+
+  .player__btn--medium {
+    min-height: 58px;
+    min-width: 62px;
+  }
+}

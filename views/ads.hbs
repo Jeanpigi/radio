@@ -1,0 +1,33 @@
+<div class="content__player">
+    <div class="container__content">
+        <div class="content__song">
+            {{#each rows}}
+            <form action="/anuncios/{{this.id}}" method="POST" class="delete-form">
+                <div class="content_form">
+                    <span class="song-title">{{this.filename}}</span>
+                    <button class="delete-button" type="submit" onclick="confirmDelete(event)">
+                        <i class="fa fa-trash" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </form>
+            {{/each}}
+        </div>
+        <script defer src="/js/confirmDelete.js"></script>
+    </div>
+    <div class="container__index">
+        <div class="container__list-player">
+            <div class="content_form">
+                <h1 class="titulo">Cargar el anuncio</h1>
+                <form class="upload-form" action="/anuncios" method="POST" enctype="multipart/form-data">
+                    <label class="upload-label" for="anuncios">Selecciona el archivo:</label>
+                    <input class="upload-input" type="file" name="anuncios" accept="audio/*" id="filePath"
+                        oninput="enableUploadButton()" />
+                    <button class="upload-button" id="uploadButton" type="submit" disabled>
+                        Cargar
+                    </button>
+                </form>
+                <script defer src="/js/loadFile.js"></script>
+            </div>
+        </div>
+    </div>
+</div>

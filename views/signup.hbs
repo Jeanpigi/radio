@@ -1,0 +1,14 @@
+<link rel="stylesheet" href="css/user.css">
+<div class="container__index">
+    <h1 class="titulo">Registro de usuario</h1>
+    <form class="formulario__signup" action="/signup" method="POST" onsubmit="return validateForm()">
+        <input class="formulario__input" type="text" name="username" id="usernameInput"
+            placeholder="Nombre de usuario" />
+        <br />
+        <input class="formulario__input" type="password" name="password" id="passwordInput" placeholder="Contraseña" />
+        <br />
+        <input class="button__link" type="submit" value="Registrarse" />
+    </form>
+    <a class="link__url" href="/">¿Ya tienes una cuenta? Inicia sesión</a>
+</div>
+<script src="/js/validateForm.js"></script>

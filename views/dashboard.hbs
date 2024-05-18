@@ -1,0 +1,92 @@
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.27/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="css/dashboard.css">
+<link rel="stylesheet" href="css/spiner.css">
+<div id="loading-container" style="display: none;">
+    <div class="spinner"></div>
+    <p>Cargando los archivos</p>
+</div>
+<div class="content__player">
+    <div class="container__content">
+        <h1>Canciones: {{canciones.length}}</h1>
+        <input class="canciones-search" type="text" id="canciones-search" placeholder="Buscar Canciones...">
+        <div class="content__song" id="canciones-content">
+            {{#each canciones}}
+            <form action="/canciones/{{this.id}}" method="POST" class="delete-form">
+                <div class="content_form">
+                    <span class="song-title" id="song-title">{{this.filename}}</span>
+                    <button class="delete-button" type="submit" onclick="confirmDelete(event)">
+                        <i class="fa fa-trash" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </form>
+            {{/each}}
+        </div>
+    </div>
+    <div class="container_load_music">
+        <div class="container__list-player">
+            <div class="content_form">
+                <h1 class="titulo">Cargar</h1>
+                <form class="upload-form" action="/canciones" method="POST" enctype="multipart/form-data"
+                    id="uploadForm">
+                    <label class="upload-label" for="fileType">Selecciona el tipo:</label>
+                    <div class="custom-select">
+                        <select class="upload-select" name="fileType" id="fileTypeSelect"
+                            onchange="changeFormAction(this.value)">
+                            <option value="" selected>Seleccione una opción</option>
+                            <option value="cancion">Canción</option>
+                            <option value="anuncio">Anuncio</option>
+                        </select>
+                    </div>
+                    <label class="upload-label" for="file" id="fileInputLabel">Selecciona el archivo:</label>
+                    <input class="upload-input" type="file" name="archivo" accept="audio/*" id="filePath"
+                        oninput="enableUploadButton()" multiple />
+                    <div class="dia" id="diaContainer">
+                        <label class="upload-label" for="dia">Selecciona el día:</label>
+                        <select class="upload-select-dia" name="dia" id="dia">
+                            <option value="T" selected>Todos</option>
+                            <option value="dom.">Domingo</option>
+                            <option value="lun.">Lunes</option>
+                            <option value="mar.">Martes</option>
+                            <option value="mié.">Miércoles</option>
+                            <option value="jue.">Jueves</option>
+                            <option value="vie.">Viernes</option>
+                            <option value="sáb.">Sábado</option>
+                        </select>
+                    </div>
+
+
+                    <button class="upload-button" id="uploadButton" type="submit" disabled>
+                        Cargar
+                    </button>
+                </form>
+                <div class="content_logout">
+                    <form action="/logout" method="GET">
+                        <button class="logout-button" type="submit">
+                            Cerrar Session
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="container__content">
+        <h1>Anuncios: {{anuncios.length}}</h1>
+        <input class="anuncios-search" type="text" id="anuncios-search" placeholder="Buscar Anuncios...">
+        <div class="content__song" id="anuncios-content">
+            {{#each anuncios}}
+            <form action="/audios/{{this.id}}" method="POST" class="delete-form">
+                <div class="content_form">
+                    <span class="song-title" id="ad-title">{{this.filename}}</span>
+                    <button class="delete-button" type="submit" onclick="confirmDelete(event)">
+                        <i class="fa fa-trash" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </form>
+            {{/each}}
+        </div>
+    </div>
+</div>
+
+<script defer src="/js/loadFile.js"></script>
+<script defer src="/js/confirmDelete.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.27/dist/sweetalert2.all.min.js"></script>
