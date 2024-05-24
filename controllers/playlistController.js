@@ -6,9 +6,6 @@ const {
 
 const createNewPlaylist = async (req, res) => {
   const { name, songs } = req.body;
-  console.log("Nombre de la playlist:", name); // Añade esta línea para depurar
-  console.log("Canciones:", songs); // Añade esta línea para depurar
-  console.log(name, songs);
   try {
     const playlistId = await createPlaylist(name);
     await addSongsToPlaylist(

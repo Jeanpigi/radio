@@ -32,8 +32,3 @@ CREATE TABLE playlist_songs (
 );
 DELETE FROM sqlite_sequence;
 COMMIT;
-
-
-select * from playlist_songs
-inner join playlists on playlist_songs.playlist_id = playlists.id
-inner join canciones on playlist_songs.song_id = canciones.id;
