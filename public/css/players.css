@@ -1,12 +1,13 @@
 /* Estilos del reproductor*/
 .main__container {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 3fr 1fr;
 }
 
 .container__player {
     display: grid;
     grid-gap: 30px;
+    justify-content: center;
 }
 
 /* Estilos del reproductor*/
@@ -267,4 +268,12 @@ img {
 .custom-confirm-button:hover {
     background-color: #e8531b;
 
+}
+
+/* Estilos para pantallas de ancho máximo de 420px (dispositivos móviles) */
+@media screen and (max-width: 420px) {
+    .main__container {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
 }

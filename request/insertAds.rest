@@ -1,0 +1,11 @@
+POST http://localhost:3000/api/playlist
+Content-Type: application/json
+
+{
+  "name": "Mi Nueva Playlist",
+  "songs": [
+    { "id": 1 },
+    { "id": 2 },
+    { "id": 3 }
+  ]
+}
