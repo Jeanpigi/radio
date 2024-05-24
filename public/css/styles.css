@@ -78,9 +78,6 @@ a {
 
 /* Estilos de cuerpo Container */
 .container {
-  display: grid;
-  justify-content: center;
-  align-items: center;
   padding: 10px;
   height: 527px;
 }

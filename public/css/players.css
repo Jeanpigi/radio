@@ -1,4 +1,9 @@
 /* Estilos del reproductor*/
+.main__container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+
 .container__player {
     display: grid;
     grid-gap: 30px;
@@ -181,4 +186,85 @@ img {
 
 .player__audio {
     visibility: hidden;
+}
+
+
+/* css/player.css */
+.container__list-player {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    justify-content: center;
+    align-items: center;
+}
+
+.container__list-player h3 {
+    text-align: center;
+    margin: 2rem;
+}
+
+.swal2-popup {
+    width: 60vw !important;
+    max-width: 80vw !important;
+}
+
+#playlist {
+    list-style: none;
+    padding: 0;
+}
+
+#playlist li {
+    padding: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #ccc;
+}
+
+#playlist li:hover {
+    background-color: #f0f0f0;
+}
+
+#playlist li.active {
+    background-color: #ddd;
+}
+
+#available-songs {
+    overflow: scroll;
+    height: 332px;
+    background: whitesmoke;
+    margin: 0 auto;
+    padding: 1em;
+    font: 100%/1.4 serif;
+    border: 1px solid rgba(0, 0, 0, 0.25);
+    list-style: none;
+}
+
+#available-songs li {
+    padding: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #ccc;
+}
+
+#available-songs li:hover {
+    background-color: #f0f0f0;
+}
+
+#available-songs li.active {
+    background-color: #ddd;
+}
+
+#show-playlist,
+.custom-confirm-button {
+    background-color: var(--button);
+    color: var(--white);
+    padding: 7px 18px;
+    border: none;
+    border-radius: 18px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+#show-playlist:hover,
+.custom-confirm-button:hover {
+    background-color: #e8531b;
+
 }

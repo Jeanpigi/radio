@@ -1,4 +1,14 @@
 /* Estilos de la pagina de inicio o login*/
+.container__login {
+    display: grid;
+    justify-content: center;
+    justify-content: center;
+    align-items: center;
+    align-content: center;
+    justify-items: center;
+    margin-top: 5rem;
+}
+
 .container__index {
     height: 390px;
     padding: 20px;
