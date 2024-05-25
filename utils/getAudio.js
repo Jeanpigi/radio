@@ -3,7 +3,6 @@ const { getNumberMusic, getNumberAds } = require("./getMaxRecent");
 
 const MAX_RECENT_ITEMS = getNumberMusic();
 const MAX_RECENT_ITEMS_ADS = getNumberAds();
-let MAX_RECENT_ITEMS_DECEMBER = 97;
 
 const obtenerAudioAleatoria = (array) => {
   const randomIndex = Math.floor(Math.random() * array.length);
@@ -34,38 +33,6 @@ const obtenerAudioAleatoriaSinRepetir = (array, recentlyPlayed) => {
 
   console.log("-----------------------------------------------------------");
   console.log("count of recently songs played:", recentlyPlayed.length);
-  console.log("-----------------------------------------------------------");
-
-  return randomItem;
-};
-
-const obtenerAudioAleatoriaSinRepetirDeciembre = (
-  array,
-  recentlyPlayedDecember
-) => {
-  // Filtra para obtener opciones que no se han reproducido recientemente
-  const availableOptions = array.filter((filePath) => {
-    return !recentlyPlayedDecember.includes(filePath);
-  });
-
-  if (availableOptions.length === 0) {
-    // Si ya se han reproducido todas las opciones, reiniciar el registro
-    recentlyPlayedDecember.length = 0;
-    return obtenerAudioAleatoriaSinRepetir(array, recentlyPlayedDecember);
-  }
-
-  const randomItem = obtenerAudioAleatoria(availableOptions);
-  recentlyPlayedDecember.push(randomItem);
-
-  if (recentlyPlayedDecember.length > MAX_RECENT_ITEMS_DECEMBER) {
-    recentlyPlayedDecember.shift();
-  }
-
-  console.log("-----------------------------------------------------------");
-  console.log(
-    "count of recently songs of december played:",
-    recentlyPlayedDecember.length
-  );
   console.log("-----------------------------------------------------------");
 
   return randomItem;
@@ -115,6 +82,5 @@ const obtenerAnuncioAleatorioConPrioridad = (array, recentlyPlayedAds) => {
 
 module.exports = {
   obtenerAudioAleatoriaSinRepetir,
-  obtenerAudioAleatoriaSinRepetirDeciembre,
   obtenerAnuncioAleatorioConPrioridad,
 };

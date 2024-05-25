@@ -1,6 +1,7 @@
 const WebSocket = require("ws");
 const cron = require("node-cron");
-const { getCachedSongs, getCachedAds } = require("./getCached");
+const { getAllSongs } = require("../model/songLite");
+const { getAllAds } = require("../model/adLite");
 const {
   obtenerAnuncioAleatorioConPrioridad,
   obtenerAudioAleatoriaSinRepetir,
@@ -44,8 +45,7 @@ module.exports = (server) => {
       if (type === "play") {
         try {
           let songPath;
-
-          const songs = await getCachedSongs();
+          const songs = await getAllSongs();
           const randomSong = obtenerAudioAleatoriaSinRepetir(
             songs,
             recentlyPlayedSongs
@@ -68,7 +68,7 @@ module.exports = (server) => {
         broadcast({ type: "pause" });
       } else if (type === "ads") {
         try {
-          const ads = await getCachedAds();
+          const ads = await getAllAds();
           const randomAd = obtenerAnuncioAleatorioConPrioridad(
             ads,
             recentlyPlayedAds

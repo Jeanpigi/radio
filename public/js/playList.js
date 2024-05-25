@@ -124,7 +124,6 @@ function showPlaylistModal() {
   }).then((result) => {
     if (result.isConfirmed) {
       const playlistData = result.value;
-      console.log("Playlist creada:", playlistData);
       // Aquí envías la solicitud POST al servidor
       sendPlaylistToServer(playlistData);
     }
@@ -146,8 +145,7 @@ function sendPlaylistToServer(playlistData) {
       }
       return response.json();
     })
-    .then((data) => {
-      console.log("Playlist guardada exitosamente:", data);
+    .then(() => {
       Swal.fire({
         icon: "success",
         title: "Playlist creada",
@@ -155,6 +153,8 @@ function sendPlaylistToServer(playlistData) {
         timer: 3000,
         showConfirmButton: false,
       });
+
+      window.location.href = "/player"; // Redirige a /player
     })
     .catch((error) => {
       console.error("Error al guardar la playlist:", error);
