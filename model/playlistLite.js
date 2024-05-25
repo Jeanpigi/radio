@@ -63,8 +63,31 @@ const getAllPlaylists = () => {
   });
 };
 
+const deletePlaylistById = (id) => {
+  return new Promise((resolve, reject) => {
+    db.run("DELETE FROM playlists WHERE id = ?", [id], (err) => {
+      if (err) {
+        reject(err);
+      } else {
+        db.run(
+          "DELETE FROM playlist_songs WHERE playlist_id = ?",
+          [id],
+          (err) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve();
+            }
+          }
+        );
+      }
+    });
+  });
+};
+
 module.exports = {
   createPlaylist,
   addSongsToPlaylist,
   getAllPlaylists,
+  deletePlaylistById,
 };

@@ -1,7 +1,8 @@
 /* Estilos del reproductor*/
 .main__container {
     display: grid;
-    grid-template-columns: 3fr 1fr;
+    grid-template-columns: 2fr 1fr;
+    margin-top: 2rem;
 }
 
 .container__player {
@@ -268,6 +269,39 @@ img {
 .custom-confirm-button:hover {
     background-color: #e8531b;
 
+}
+
+.lista {
+    margin: 2rem;
+    text-align: center;
+}
+
+.playlist-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    margin: 5px 0;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.playlist-item .playlist-name {
+    flex-grow: 1;
+}
+
+.playlist-item button {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.playlist-item button:hover {
+    background-color: #c0392b;
 }
 
 /* Estilos para pantallas de ancho máximo de 420px (dispositivos móviles) */

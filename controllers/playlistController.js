@@ -2,6 +2,7 @@ const {
   createPlaylist,
   addSongsToPlaylist,
   getAllPlaylists,
+  deletePlaylistById,
 } = require("../model/playlistLite");
 
 const createNewPlaylist = async (req, res) => {
@@ -33,7 +34,19 @@ const getPlaylists = async (req, res) => {
   }
 };
 
+const deletePlaylist = async (req, res) => {
+  const { id } = req.params;
+  try {
+    await deletePlaylistById(id);
+    res.status(200).json({ message: "Playlist eliminada exitosamente" });
+  } catch (error) {
+    console.error("Error al eliminar la playlist:", error);
+    res.status(500).json({ error: "Hubo un problema al eliminar la playlist" });
+  }
+};
+
 module.exports = {
   createNewPlaylist,
   getPlaylists,
+  deletePlaylist,
 };
