@@ -2,6 +2,7 @@ const WebSocket = require("ws");
 const cron = require("node-cron");
 const { getAllSongs } = require("../model/songLite");
 const { getAllAds } = require("../model/adLite");
+const { getAllPlaylists } = require("../model/playlistLite");
 const {
   obtenerAnuncioAleatorioConPrioridad,
   obtenerAudioAleatoriaSinRepetir,
@@ -14,14 +15,22 @@ module.exports = (server) => {
   const recentlyPlayedSongs = [];
   const recentlyPlayedAds = [];
 
+  let playlists = [];
+  let songs = [];
+  let currentPlaylistIndex = 0;
+  let currentSongIndex = 0;
+
   const horasHimno = ["0 6 * * *", "0 12 * * *", "0 18 * * *", "0 0 * * *"];
 
-  wss.on("connection", (ws) => {
+  wss.on("connection", async (ws) => {
     console.log("Cliente conectado");
 
     clients[ws._socket.remoteAddress] = ws;
     const numClients = Object.keys(clients).length;
     console.log(`Número de clientes conectados: ${numClients}`);
+
+    playlists = await getAllPlaylists();
+    songs = await getAllSongs();
 
     const onTrackChange = (newTrack) => {
       broadcast({ type: "trackChange", track: newTrack });
@@ -44,22 +53,25 @@ module.exports = (server) => {
       const { type } = JSON.parse(message);
       if (type === "play") {
         try {
-          let songPath;
-          const songs = await getAllSongs();
-          const randomSong = obtenerAudioAleatoriaSinRepetir(
-            songs,
-            recentlyPlayedSongs
-          );
-          songPath = randomSong
-            ? decodeURIComponent(randomSong.filepath).replace("public/", "")
-            : null;
-
-          if (songPath) {
-            console.log("Ruta de la canción:", songPath);
-            broadcast({ type: "play", path: songPath });
-            onTrackChange(songPath);
+          if (playlists.length > 0) {
+            playNextSongInPlaylist();
           } else {
-            console.error("La ruta de la canción es inválida o undefined");
+            let songPath;
+            const randomSong = obtenerAudioAleatoriaSinRepetir(
+              songs,
+              recentlyPlayedSongs
+            );
+            songPath = randomSong
+              ? decodeURIComponent(randomSong.filepath).replace("public/", "")
+              : null;
+
+            if (songPath) {
+              console.log("Ruta de la canción:", songPath);
+              broadcast({ type: "play", path: songPath });
+              onTrackChange(songPath);
+            } else {
+              console.error("La ruta de la canción es inválida o undefined");
+            }
           }
         } catch (error) {
           console.error("Error al obtener la canción", error);
@@ -87,6 +99,34 @@ module.exports = (server) => {
       delete clients[ws._socket.remoteAddress];
     });
   });
+
+  const playNextSongInPlaylist = () => {
+    if (playlists.length === 0) return;
+
+    const currentPlaylist = playlists[currentPlaylistIndex];
+    const currentSong = currentPlaylist.songs[currentSongIndex];
+
+    if (!currentSong) return;
+
+    const songPath = decodeURIComponent(currentSong.filepath).replace(
+      "public/",
+      ""
+    );
+
+    console.log("Reproduciendo canción:", songPath);
+    broadcast({ type: "play", path: songPath });
+
+    currentSongIndex++;
+
+    if (currentSongIndex >= currentPlaylist.songs.length) {
+      currentSongIndex = 0;
+      currentPlaylistIndex++;
+
+      if (currentPlaylistIndex >= playlists.length) {
+        currentPlaylistIndex = 0;
+      }
+    }
+  };
 
   const broadcast = (data) => {
     Object.values(clients).forEach((client) => {

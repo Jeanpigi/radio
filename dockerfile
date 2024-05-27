@@ -10,6 +10,9 @@ COPY package*.json ./
 # Install application dependencies
 RUN npm install
 
+# Install build tools necessary to compile native dependencies
+RUN apt-get update && apt-get install -y build-essential
+
 # Copy the rest of the application code to the container
 COPY . .
 
