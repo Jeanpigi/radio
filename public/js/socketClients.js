@@ -7,24 +7,23 @@ const elements = {
   range: document.getElementById("duration__range"),
   forwardButton: document.getElementById("forward"),
   backwardButton: document.getElementById("backward"),
-  recordButton: document.getElementById("record-button"),
 };
 
 let settings = {
   isRotating: false,
-  pausedTime: 0,
   animationId: null,
   isDragging: false,
-  isPlaying: false,
-  adDuration: 900,
-  accumulatedDuration: 0,
-  song: "",
-  anuncio: "",
-  isPausedByUser: false,
-  cancionAnterior: "",
+  currentPath: null,
 };
 
-const socket = new WebSocket("ws://localhost:3000");
+// MSE para voz del DJ
+let talkAudio = null;
+let talkMediaSource = null;
+let talkSourceBuffer = null;
+let talkQueue = [];
+
+const wsUrl = `ws://${window.location.host}`;
+const socket = new WebSocket(wsUrl);
 
 const init = () => {
   elements.range.disabled = true;
@@ -33,125 +32,88 @@ const init = () => {
 
 const bindEvents = () => {
   socket.addEventListener("open", () => {
-    console.log("Conectado al servidor WebSocket");
+    socket.send(JSON.stringify({ type: "listenerConnect" }));
+    console.log("Conectado a la radio");
   });
 
-  socket.addEventListener("message", (event) => {
-    const response = JSON.parse(event.data);
-    if (response.type === "play") {
-      handleSocketPlay(response.path);
-    } else if (response.type === "playAd") {
-      handleSocketPlayAd(response.path);
-    } else if (response.type === "himno") {
-      handleHimnoPlay(response.path);
+  socket.addEventListener("message", async (event) => {
+    if (event.data instanceof Blob) {
+      const buf = await event.data.arrayBuffer();
+      talkQueue.push(buf);
+      flushTalkQueue();
+      return;
+    }
+    const data = JSON.parse(event.data);
+    if (data.type === "play" || data.type === "playAd" || data.type === "himno") {
+      handlePlay(data.path, data.currentTime || 0);
+    } else if (data.type === "pause") {
+      handleRadioPause();
+    } else if (data.type === "talkStart") {
+      elements.audioPlayer.volume = 0.15;
+      setupTalkStream();
+    } else if (data.type === "talkStop") {
+      elements.audioPlayer.volume = 1;
+      teardownTalkStream();
     }
   });
 
   socket.addEventListener("close", () => {
-    console.log("Desconectado del servidor WebSocket");
+    console.log("Desconectado de la radio");
   });
 
-  elements.playButton.addEventListener("click", handlePlayButtonClick);
-  elements.forwardButton.addEventListener("click", nextSong);
-  elements.backwardButton.addEventListener("click", backSong);
-  elements.range.addEventListener("input", updateProgress);
-  elements.range.addEventListener("mousedown", () => {
-    settings.isDragging = true;
-  });
-  elements.range.addEventListener("mouseup", () => {
-    settings.isDragging = false;
-  });
-  elements.range.addEventListener("click", (event) => {
-    if (!settings.isDragging) setProgress(event);
-  });
-  elements.audioPlayer.addEventListener("loadedmetadata", loadMetaData);
-  elements.audioPlayer.addEventListener(
-    "timeupdate",
-    debounce(updateProgress, 100)
-  );
-  elements.audioPlayer.addEventListener("ended", handleAudioEnded);
-  elements.audioPlayer.addEventListener("error", handleAudioError);
-};
-
-const handlePlayButtonClick = () => {
-  if (elements.audioPlayer.paused) {
-    if (settings.isPlaying) {
-      playSong(settings.song);
+  // Control local: silenciar/escuchar sin afectar la radio global
+  elements.playButton.addEventListener("click", () => {
+    if (elements.audioPlayer.paused) {
+      elements.audioPlayer.play();
     } else {
-      socket.send(JSON.stringify({ type: "play" }));
-      settings.isPlaying = true;
+      elements.audioPlayer.pause();
     }
-  } else {
-    pauseSong();
-    socket.send(JSON.stringify({ type: "pause" }));
-  }
+    updateControls();
+  });
+
+  elements.range.addEventListener("input", updateProgress);
+  elements.range.addEventListener("mousedown", () => { settings.isDragging = true; });
+  elements.range.addEventListener("mouseup", () => { settings.isDragging = false; });
+  elements.audioPlayer.addEventListener("loadedmetadata", updateProgress);
+  elements.audioPlayer.addEventListener("timeupdate", debounce(updateProgress, 100));
+  elements.audioPlayer.addEventListener("error", () => {
+    console.error("Error reproduciendo audio");
+  });
 };
 
-const handleSocketPlay = (cancion) => {
-  settings.song = cancion;
-  elements.audioPlayer.src = cancion;
-  playSong(cancion);
-  changeSongtitle(cancion);
-};
-
-const handleSocketPlayAd = (ad) => {
-  if (!ad || typeof ad !== "string" || ad.trim() === "") {
-    nextSong();
-    return;
-  }
-  settings.song = "";
-  settings.anuncio = ad;
-  elements.audioPlayer.src = ad;
-  playSong(ad);
-  changeSongtitle(ad);
-  stopRotation();
-  settings.isRotating = false;
-};
-
-const handleHimnoPlay = (himnoPath) => {
-  elements.audioPlayer.pause();
-  settings.song = "";
-  elements.range.value = 0;
-  elements.audioPlayer.currentTime = 0;
-  elements.audioPlayer.duration = 0;
-  updateProgress();
-  settings.song = himnoPath;
-  elements.audioPlayer.src = himnoPath;
+const handlePlay = (path, currentTime) => {
+  if (!path) return;
+  settings.currentPath = path;
+  elements.audioPlayer.src = path;
   elements.audioPlayer.load();
-  playSong(himnoPath);
-  changeSongtitle(himnoPath);
-  stopRotation();
-  settings.isRotating = false;
-};
-
-const handleAudioEnded = () => {
-  if (settings.accumulatedDuration >= settings.adDuration) {
-    socket.send(JSON.stringify({ type: "ads" }));
-    settings.accumulatedDuration = 0;
-  } else {
-    nextSong();
-    settings.anuncio = "";
+  elements.audioPlayer.currentTime = currentTime;
+  elements.audioPlayer.play();
+  changeSongTitle(path);
+  updateControls();
+  if (!settings.isRotating) {
+    rotateImage();
+    settings.isRotating = true;
   }
 };
 
-const handleAudioError = () => {
-  nextSong();
-};
-
-const loadMetaData = () => {
-  settings.accumulatedDuration += parseFloat(elements.audioPlayer.duration);
-  updateProgress();
+const handleRadioPause = () => {
+  elements.audioPlayer.pause();
+  updateControls();
+  stopRotation();
 };
 
 const rotateImage = () => {
-  if (settings.isPlaying) {
+  if (!elements.audioPlayer.paused) {
     elements.playerImage.style.transform += "rotate(1deg)";
     settings.animationId = requestAnimationFrame(rotateImage);
+  } else {
+    settings.isRotating = false;
   }
 };
 
 const stopRotation = () => {
   cancelAnimationFrame(settings.animationId);
+  settings.isRotating = false;
 };
 
 const updateControls = () => {
@@ -165,72 +127,66 @@ const updateControls = () => {
   }
 };
 
-const changeSongtitle = (audio) => {
-  const nombreArchivo = audio.split(/[\\/]/).pop();
-  elements.titulo.innerText = nombreArchivo;
+const changeSongTitle = (path) => {
+  elements.titulo.innerText = path.split(/[\\/]/).pop();
 };
 
 const updateProgress = () => {
   const { duration, currentTime } = elements.audioPlayer;
+  if (!duration || isNaN(duration)) return;
   const percent = (currentTime / duration) * 100;
-  const formattedCurrentTime = formatTime(currentTime);
-  const formattedDuration = formatTime(duration);
-
   elements.range.value = percent;
   elements.range.style.setProperty("--progress", percent);
-  document.querySelector(".start").textContent = formattedCurrentTime;
-  document.querySelector(".end").textContent = formattedDuration;
-};
-
-const setProgress = (event) => {
-  const totalWidth = elements.range.offsetWidth;
-  const progressWidth = event.offsetX;
-  const current = (progressWidth / totalWidth) * elements.audioPlayer.duration;
-  elements.audioPlayer.currentTime = current;
-};
-
-const playSong = (cancion) => {
-  if (!cancion) {
-    nextSong();
-  }
-  if (settings.isPlaying) {
-    elements.audioPlayer.currentTime = settings.pausedTime;
-    settings.pausedTime = 0;
-  }
-  elements.audioPlayer.play();
-  updateControls();
-  if (!settings.isRotating) {
-    rotateImage();
-    settings.isRotating = true;
-  }
-};
-
-const pauseSong = () => {
-  elements.audioPlayer.pause();
-  updateControls();
-  stopRotation();
-  settings.isRotating = false;
-  settings.pausedTime = elements.audioPlayer.currentTime;
-  settings.isPausedByUser = true;
-};
-
-const nextSong = () => {
-  settings.cancionAnterior = settings.song;
-  socket.send(JSON.stringify({ type: "play" }));
-};
-
-const backSong = () => {
-  playSong(settings.cancionAnterior);
-  changeSongtitle(settings.cancionAnterior);
+  document.querySelector(".start").textContent = formatTime(currentTime);
+  document.querySelector(".end").textContent = formatTime(duration);
 };
 
 const formatTime = (time) => {
+  if (isNaN(time)) return "00:00";
   const minutes = Math.floor(time / 60);
   const seconds = Math.floor(time % 60);
   return `${padTime(minutes)}:${padTime(seconds)}`;
 };
 
-const padTime = (time) => (time < 10 ? `0${time}` : time);
+const padTime = (t) => (t < 10 ? `0${t}` : t);
+
+const setupTalkStream = () => {
+  talkAudio = new Audio();
+  talkAudio.autoplay = true;
+  talkMediaSource = new MediaSource();
+  talkAudio.src = URL.createObjectURL(talkMediaSource);
+  talkMediaSource.addEventListener("sourceopen", () => {
+    try {
+      const mimeType = MediaSource.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : "audio/webm";
+      talkSourceBuffer = talkMediaSource.addSourceBuffer(mimeType);
+      talkSourceBuffer.mode = "sequence";
+      talkSourceBuffer.addEventListener("updateend", flushTalkQueue);
+      flushTalkQueue();
+    } catch (e) {
+      console.error("MSE error:", e);
+    }
+  });
+};
+
+const flushTalkQueue = () => {
+  if (!talkSourceBuffer || talkSourceBuffer.updating || talkQueue.length === 0) return;
+  talkSourceBuffer.appendBuffer(talkQueue.shift());
+};
+
+const teardownTalkStream = () => {
+  talkQueue = [];
+  if (talkMediaSource && talkMediaSource.readyState === "open") {
+    try { talkMediaSource.endOfStream(); } catch (_) {}
+  }
+  if (talkAudio) {
+    talkAudio.src = "";
+    talkAudio = null;
+  }
+  talkMediaSource = null;
+  talkSourceBuffer = null;
+};
 
 const debounce = (func, delay) => {
   let timeoutId;

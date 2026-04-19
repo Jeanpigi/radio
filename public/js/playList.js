@@ -1,9 +1,8 @@
 let canciones = [];
 let playlist = [];
 
-// Función para cargar las canciones desde la API
 const loadSongsFromAPI = () => {
-  fetch("http://localhost:3000/api/canciones")
+  fetch("/api/canciones")
     .then((response) => response.json())
     .then((data) => {
       canciones = data;
@@ -12,13 +11,10 @@ const loadSongsFromAPI = () => {
     .catch((error) => console.error("Error al cargar las canciones:", error));
 };
 
-// Función para obtener las playlists desde la API
-
-// Cargar la lista de canciones disponibles
 function loadAvailableSongs() {
   const availableSongsContainer = document.getElementById("available-songs");
   if (availableSongsContainer) {
-    availableSongsContainer.innerHTML = ""; // Limpiar la lista
+    availableSongsContainer.innerHTML = "";
     canciones.forEach((cancion, index) => {
       const songElement = document.createElement("li");
       songElement.textContent = cancion.filename;
@@ -28,7 +24,6 @@ function loadAvailableSongs() {
   }
 }
 
-// Agregar canción a la playlist
 function addToPlaylist(index) {
   const selectedSong = canciones[index];
   if (!playlist.includes(selectedSong)) {
@@ -37,22 +32,19 @@ function addToPlaylist(index) {
   }
 }
 
-// Eliminar canción de la playlist
 function removeFromPlaylist(index) {
-  playlist.splice(index, 1); // Eliminar la canción del array playlist
-  updatePlaylist(); // Actualizar la lista de reproducción en el HTML
+  playlist.splice(index, 1);
+  updatePlaylist();
 }
 
-// Actualizar la lista de reproducción en el HTML
 function updatePlaylist() {
   const playlistContainer = document.getElementById("playlist");
   if (playlistContainer) {
-    playlistContainer.innerHTML = ""; // Limpiar la lista
+    playlistContainer.innerHTML = "";
     playlist.forEach((cancion, index) => {
       const songElement = document.createElement("li");
       songElement.textContent = cancion.filename;
 
-      // Crear el botón de eliminación
       const removeButton = document.createElement("button");
       removeButton.textContent = "X";
       removeButton.style.marginLeft = "10px";
@@ -64,10 +56,10 @@ function updatePlaylist() {
   }
 }
 
-// Mostrar el SweetAlert con la playlist
 function showPlaylistModal() {
+  playlist = [];
   Swal.fire({
-    title: "Crear listas de reproducción",
+    title: "Crear Playlist",
     html: `
       <div class="container__list-player">
         <div>
@@ -75,8 +67,8 @@ function showPlaylistModal() {
           <ul id="available-songs"></ul>
         </div>
         <div>
-          <h3>Playlist</h3>
-          <input type="text" id="playlist-name" placeholder="Nombre de la Playlist">
+          <h3>Mi Playlist</h3>
+          <input type="text" id="playlist-name" placeholder="Nombre de la playlist">
           <ul id="playlist"></ul>
         </div>
       </div>
@@ -91,31 +83,16 @@ function showPlaylistModal() {
       cancelButton: "custom-cancel-button",
     },
     preConfirm: () => {
-      const playlistName = document.getElementById("playlist-name").value;
+      const playlistName = document.getElementById("playlist-name").value.trim();
       if (!playlistName) {
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "Por favor, ingresa un nombre para la playlist.",
-          timer: 3000,
-          showConfirmButton: false,
-        });
+        Swal.showValidationMessage("Ingresa un nombre para la playlist");
         return false;
       }
       if (playlist.length === 0) {
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "La playlist debe tener al menos una canción.",
-          timer: 3000,
-          showConfirmButton: false,
-        });
+        Swal.showValidationMessage("Agrega al menos una canción");
         return false;
       }
-      return {
-        name: playlistName,
-        songs: playlist,
-      };
+      return { name: playlistName, songs: playlist };
     },
     didOpen: () => {
       loadAvailableSongs();
@@ -123,26 +100,19 @@ function showPlaylistModal() {
     },
   }).then((result) => {
     if (result.isConfirmed) {
-      const playlistData = result.value;
-      // Aquí envías la solicitud POST al servidor
-      sendPlaylistToServer(playlistData);
+      sendPlaylistToServer(result.value);
     }
   });
 }
 
-// Función para enviar la playlist al servidor
 function sendPlaylistToServer(playlistData) {
-  fetch("http://localhost:3000/api/playlist", {
+  fetch("/api/playlist", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(playlistData),
   })
     .then((response) => {
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
+      if (!response.ok) throw new Error("Error del servidor");
       return response.json();
     })
     .then(() => {
@@ -150,95 +120,87 @@ function sendPlaylistToServer(playlistData) {
         icon: "success",
         title: "Playlist creada",
         text: "Tu playlist ha sido guardada exitosamente.",
-        timer: 3000,
+        timer: 2000,
         showConfirmButton: false,
       });
-
-      window.location.href = "/player"; // Redirige a /player
+      loadPlaylistsFromAPI();
     })
-    .catch((error) => {
-      console.error("Error al guardar la playlist:", error);
+    .catch(() => {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: "Hubo un problema al guardar tu playlist. Intenta de nuevo.",
+        text: "Hubo un problema al guardar la playlist. Intenta de nuevo.",
         timer: 3000,
         showConfirmButton: false,
       });
     });
 }
 
-document
-  .getElementById("show-playlist")
-  .addEventListener("click", showPlaylistModal);
-
-loadSongsFromAPI();
-
-// Función para obtener las playlists desde la API// Función para obtener las playlists desde la API
 const loadPlaylistsFromAPI = () => {
-  fetch("http://localhost:3000/api/playlists")
+  fetch("/api/playlists")
     .then((response) => response.json())
-    .then((data) => {
-      lista(data);
-    })
+    .then((data) => renderPlaylists(data))
     .catch((error) => console.error("Error al cargar las playlists:", error));
 };
 
-// Función para actualizar la interfaz con las playlists
-const lista = (playlists) => {
-  const playlistContainer = document.querySelector(".lista");
-  if (playlistContainer) {
-    playlistContainer.innerHTML = `<h3>Lista de reproducción</h3>`; // Limpiar la lista
-    const fragment = document.createDocumentFragment();
-    playlists.forEach((playlist) => {
-      const playlistElement = document.createElement("div");
-      playlistElement.className = "playlist-item";
+const renderPlaylists = (playlists) => {
+  const container = document.getElementById("playlists-list");
+  if (!container) return;
 
-      const playlistNameElement = document.createElement("span");
-      playlistNameElement.className = "playlist-name";
-      playlistNameElement.textContent = playlist.name;
-
-      const deleteButton = document.createElement("button");
-      deleteButton.className = "delete-button";
-      deleteButton.textContent = "Eliminar";
-      deleteButton.onclick = () => deletePlaylist(playlist.id);
-
-      playlistElement.appendChild(playlistNameElement);
-      playlistElement.appendChild(deleteButton);
-      fragment.appendChild(playlistElement);
-    });
-    playlistContainer.appendChild(fragment);
+  if (!playlists.length) {
+    container.innerHTML = '<p class="pl__empty">No hay playlists aún. Crea una con el botón de arriba.</p>';
+    return;
   }
+
+  container.innerHTML = "";
+  const fragment = document.createDocumentFragment();
+  playlists.forEach((pl) => {
+    const item = document.createElement("div");
+    item.className = "playlist-item";
+    item.innerHTML = `
+      <div class="playlist-item__info">
+        <span class="playlist-item__name"><i class="fas fa-list"></i> ${pl.name}</span>
+        <span class="playlist-item__count">${pl.songs.length} canción${pl.songs.length !== 1 ? "es" : ""}</span>
+      </div>
+      <button class="playlist-item__delete" onclick="deletePlaylist(${pl.id})">
+        <i class="fas fa-trash"></i> Eliminar
+      </button>
+    `;
+    fragment.appendChild(item);
+  });
+  container.appendChild(fragment);
 };
 
-// Función para eliminar una playlist
 const deletePlaylist = (playlistId) => {
-  fetch(`http://localhost:3000/api/playlist/${playlistId}`, {
-    method: "DELETE",
-  })
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      return response.json();
-    })
-    .then((data) => {
-      console.log("Playlist eliminada exitosamente:", data);
-      loadPlaylistsFromAPI(); // Volver a cargar las playlists después de eliminar una
-    })
-    .catch((error) => {
-      console.error("Error al eliminar la playlist:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Hubo un problema al eliminar tu playlist. Intenta de nuevo.",
-        timer: 3000,
-        showConfirmButton: false,
+  Swal.fire({
+    title: "¿Eliminar playlist?",
+    text: "Esta acción no se puede deshacer.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Eliminar",
+    cancelButtonText: "Cancelar",
+    confirmButtonColor: "#e74c3c",
+  }).then((result) => {
+    if (!result.isConfirmed) return;
+    fetch(`/api/playlist/${playlistId}`, { method: "DELETE" })
+      .then((response) => {
+        if (!response.ok) throw new Error("Error del servidor");
+        return response.json();
+      })
+      .then(() => loadPlaylistsFromAPI())
+      .catch(() => {
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Hubo un problema al eliminar la playlist. Intenta de nuevo.",
+          timer: 3000,
+          showConfirmButton: false,
+        });
       });
-    });
+  });
 };
 
-// Cargar las playlists al cargar la página
-document.addEventListener("DOMContentLoaded", () => {
-  loadPlaylistsFromAPI();
-});
+document.getElementById("show-playlist").addEventListener("click", showPlaylistModal);
+
+loadSongsFromAPI();
+loadPlaylistsFromAPI();

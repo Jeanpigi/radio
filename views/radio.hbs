@@ -1,0 +1,94 @@
+<link rel="stylesheet" href="/css/radio.css">
+
+<div class="radio__container">
+
+  <div class="radio__topbar">
+    <a href="/canciones" class="radio__back-link">
+      <i class="fas fa-arrow-left"></i> Dashboard
+    </a>
+    <a href="/player" class="radio__back-link" style="margin-left:1.5rem">
+      <i class="fas fa-list"></i> Playlists
+    </a>
+  </div>
+
+  <div class="radio__panel">
+    <h1 class="radio__title"><i class="fas fa-broadcast-tower"></i> Panel de Radio</h1>
+
+    <div class="radio__now-playing">
+      <span class="radio__label">En el aire:</span>
+      <span id="now-playing-title" class="radio__song-name">— Sin reproducir —</span>
+    </div>
+
+    <div class="radio__monitor">
+      <span class="radio__label"><i class="fas fa-headphones"></i> Monitor admin:</span>
+      <audio id="admin-audio" controls style="width:100%; margin-top:0.5rem;"></audio>
+    </div>
+
+    <div class="radio__controls">
+      <button id="btn-pause-resume" class="radio__btn radio__btn--primary" disabled>
+        <i id="pause-resume-icon" class="fas fa-pause"></i>
+        <span id="pause-resume-text">Pausar</span>
+      </button>
+      <button id="btn-next" class="radio__btn radio__btn--secondary">
+        <i class="fas fa-forward"></i> Siguiente
+      </button>
+      <button id="btn-ad" class="radio__btn radio__btn--accent">
+        <i class="fas fa-random"></i> Anuncio aleatorio
+      </button>
+      <button id="btn-talk" class="radio__btn radio__btn--talk">
+        <i class="fas fa-microphone" id="talk-icon"></i>
+        <span id="talk-text">Hablar</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="radio__bottom-grid">
+
+    <div class="radio__songs">
+      <h2 class="radio__songs-title"><i class="fas fa-music"></i> Canciones</h2>
+      {{#if canciones.length}}
+      <div class="radio__songs-list">
+        {{#each canciones}}
+        <div class="radio__song-item" data-path="{{this.path}}">
+          <span class="radio__song-filename">{{this.filename}}</span>
+          <button class="radio__btn radio__btn--play btn-play-song" data-path="{{this.path}}">
+            <i class="fas fa-play"></i>
+          </button>
+        </div>
+        {{/each}}
+      </div>
+      {{else}}
+      <p class="radio__empty">No hay canciones. <a href="/canciones">Sube algunas desde el Dashboard.</a></p>
+      {{/if}}
+    </div>
+
+    <div class="radio__playlists">
+      <h2 class="radio__songs-title"><i class="fas fa-list"></i> Playlists</h2>
+      <div id="playlists-container">
+        <p class="radio__empty">Cargando playlists...</p>
+      </div>
+    </div>
+
+    <div class="radio__anuncios">
+      <h2 class="radio__songs-title"><i class="fas fa-bullhorn"></i> Anuncios</h2>
+      {{#if anuncios.length}}
+      <div class="radio__songs-list">
+        {{#each anuncios}}
+        <div class="radio__song-item radio__ad-item" data-path="{{this.path}}">
+          <span class="radio__song-filename">{{this.filename}}</span>
+          <button class="radio__btn radio__btn--play btn-play-ad" data-path="{{this.path}}">
+            <i class="fas fa-play"></i>
+          </button>
+        </div>
+        {{/each}}
+      </div>
+      {{else}}
+      <p class="radio__empty">No hay anuncios. <a href="/canciones">Sube algunos desde el Dashboard.</a></p>
+      {{/if}}
+    </div>
+
+  </div>
+
+</div>
+
+<script defer src="/js/radioAdmin.js"></script>

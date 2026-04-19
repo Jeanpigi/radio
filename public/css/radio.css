@@ -1,0 +1,274 @@
+.radio__container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.radio__topbar {
+  display: flex;
+  align-items: center;
+}
+
+.radio__back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--button) !important;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.radio__back-link:hover {
+  opacity: 0.75;
+}
+
+.radio__panel {
+  background: #1a1a2e;
+  border-radius: 14px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.radio__title {
+  color: #e94560;
+  font-size: 2rem;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.radio__now-playing {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #16213e;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  flex-wrap: wrap;
+}
+
+.radio__monitor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  background: #16213e;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+}
+
+.radio__label {
+  color: #a0a0b0;
+  font-size: 1.3rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.radio__song-name {
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radio__controls {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.radio__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  border: none;
+  border-radius: 20px;
+  font-size: 1.4rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.radio__btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.radio__btn:hover:not(:disabled) {
+  opacity: 0.82;
+}
+
+.radio__btn--primary  { background: #e94560; color: #fff; }
+.radio__btn--secondary { background: #0f3460; color: #fff; }
+.radio__btn--accent   { background: #533483; color: #fff; }
+.radio__btn--play     { background: #e94560; color: #fff; padding: 0.4rem 0.85rem; }
+.radio__btn--delete   { background: transparent; border: 2px solid #e74c3c; color: #e74c3c; padding: 0.3rem 0.75rem; }
+.radio__btn--delete:hover:not(:disabled) { background: #e74c3c; color: #fff; opacity: 1; }
+.radio__btn--talk     { background: #1e6b3a; color: #fff; user-select: none; }
+
+.radio__btn--talking {
+  background: #e94560 !important;
+  animation: pulse-talk 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-talk {
+  from { box-shadow: 0 0 0 0 rgba(233,69,96,0.5); }
+  to   { box-shadow: 0 0 0 10px rgba(233,69,96,0); }
+}
+
+/* Songs section */
+.radio__songs {
+  background: #fff;
+  border-radius: 14px;
+  padding: 1.5rem;
+  box-shadow: 4px 4px 12px rgba(0,0,0,0.08);
+}
+
+.radio__songs-title {
+  font-size: 1.6rem;
+  color: var(--black);
+  margin-bottom: 1rem;
+}
+
+.radio__songs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 460px;
+  overflow-y: auto;
+}
+
+.radio__songs-list::-webkit-scrollbar { width: 6px; }
+.radio__songs-list::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+
+.radio__song-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
+  gap: 1rem;
+  border-left: 3px solid transparent;
+  transition: background 0.15s;
+}
+
+.radio__song-item:hover {
+  background: #eee;
+}
+
+.radio__song-item--active {
+  background: #fff0f3;
+  border-left-color: #e94560;
+}
+
+.radio__song-filename {
+  color: var(--black);
+  font-size: 1.3rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radio__empty {
+  color: #888;
+  font-size: 1.4rem;
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.radio__empty a {
+  color: var(--button);
+}
+
+/* Bottom grid: canciones | playlists | anuncios */
+.radio__bottom-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.radio__playlists,
+.radio__anuncios {
+  background: #fff;
+  border-radius: 14px;
+  padding: 1.5rem;
+  box-shadow: 4px 4px 12px rgba(0,0,0,0.08);
+}
+
+.radio__playlist-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  gap: 0.75rem;
+  border-left: 3px solid transparent;
+  transition: background 0.15s;
+}
+
+.radio__playlist-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.radio__playlist-item:hover {
+  background: #eee;
+}
+
+.radio__playlist-item--active {
+  background: #fff0f3;
+  border-left-color: #e94560;
+}
+
+.radio__playlist-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  overflow: hidden;
+}
+
+.radio__playlist-name {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--black);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radio__playlist-count {
+  font-size: 1.1rem;
+  color: #888;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .radio__bottom-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .radio__bottom-grid {
+    grid-template-columns: 1fr;
+  }
+  .radio__panel { padding: 1.25rem; }
+  .radio__title { font-size: 1.6rem; }
+  .radio__controls { gap: 0.6rem; }
+  .radio__btn { font-size: 1.2rem; padding: 0.55rem 1rem; }
+}

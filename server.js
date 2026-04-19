@@ -16,6 +16,7 @@ const adRoutes = require("./routes/adRoutes");
 const playerRoutes = require("./routes/playerRoutes");
 const errorRoutes = require("./routes/errorRoutes");
 const playlistRoutes = require("./routes/playlistRoutes");
+const radioRoutes = require("./routes/radioRoutes");
 
 const app = express();
 const server = http.createServer(app);
@@ -68,6 +69,7 @@ app.use((req, res, next) => {
 
 // Rutas
 app.use("/", playlistRoutes);
+app.use("/", radioRoutes);
 app.use("/", homeRoutes);
 app.use("/", userRoutes);
 app.use("/", playerRoutes);

@@ -1,0 +1,32 @@
+<link rel="stylesheet" href="/css/home.css">
+
+<div class="listener__container">
+
+  <div class="listener__card">
+    <div class="listener__logo-wrap">
+      <img src="/assets/logo.svg" alt="Logo Radio" class="listener__logo">
+    </div>
+
+    <div class="listener__equalizer" id="equalizer">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+
+    <div class="listener__status" id="status-text">Conectando...</div>
+    <div class="listener__song" id="song-name">— —</div>
+
+    <button class="listener__play-btn" id="btn-play" disabled>
+      <i class="fas fa-play" id="play-icon"></i>
+    </button>
+
+    <audio id="listener-audio"></audio>
+
+    <p class="listener__hint" id="hint-text">Esperando señal del administrador</p>
+
+    <div class="talk-banner" id="talk-banner">
+      <i class="fas fa-microphone"></i> DJ al aire
+    </div>
+  </div>
+
+</div>
+
+<script defer src="/js/radioListener.js"></script>
