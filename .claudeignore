@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# SQLite database binary
+database/player.db
+
+# Media files (MP3s — binaries, no value for code analysis)
+public/music/
+public/audios/
+public/himno/
+public/diciembre/
+
+# Sensitive
+.env
+
+# Lock files
+package-lock.json
+
+# Git internals
+.git/

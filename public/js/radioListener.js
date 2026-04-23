@@ -47,12 +47,16 @@ socket.addEventListener("message", (event) => {
     btnPlay.disabled = false;
     songName.textContent = "Radio Online";
     talkBanner.classList.add("talk-banner--active");
-    // Conectar al stream HTTP — el browser lo reproduce como cualquier audio
     audio.src = "/stream/mixer";
     audio.volume = baseVolume;
-    audio.load();
-    audio.play().catch(() => {});
-    setPlaying(true);
+    hintText.textContent = "Conectando al mixer...";
+    audio.play().then(() => {
+      setPlaying(true);
+    }).catch((err) => {
+      console.warn("Mixer play failed:", err.message);
+      setPlaying(false);
+      hintText.textContent = "Presiona play para escuchar en vivo";
+    });
 
   } else if (data.type === "mixerStop") {
     inMixerMode = false;
