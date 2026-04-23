@@ -1,107 +1,136 @@
-# Radio de Música Web
+# Radio Online
 
-Radio online el cuál esta desarrollado con las tecnologías Node.js, Express y SqlLite. Esta aplicación avanzada permite a los usuarios disfrutar de su música favorita mientras brinda una experiencia fluida y confiable. Ambos servicios consumen la misma musica y anuncios.
+Radio online desarrollada con Node.js, Express, SQLite3 y WebSockets. Permite transmitir música y anuncios en tiempo real a todos los oyentes conectados, con un panel de administración completo y un mixer en vivo para transmisiones de voz.
 
-## Características principales
+## Características
 
-- Registro de usuarios: Los usuarios pueden crear fácilmente una cuenta personal para acceder a todas las funcionalidades del reproductor de música.
-- Inicio de sesión seguro: Con un sistema de autenticación robusto, los usuarios pueden iniciar sesión de manera segura en sus cuentas.
-- Carga de canciones y anuncios: La aplicación permite a los usuarios autorizados cargar y almacenar sus canciones o anuncios en formato MP3 para acceder a ellas en cualquier momento y desde cualquier dispositivo.
-- Reproducción de canciones y anuncios: Los usuarios pueden reproducir sus audios cargados sin problemas, brindando una experiencia auditiva excepcional.
-- API para información de canciones: Además de las funcionalidades principales, la aplicación también proporciona una API intuitiva que permite a los desarrolladores obtener información detallada sobre las canciones almacenadas.
-- Permite consumir el servicio de radio online, escuchando musica y anuncios.
-- Permite crear playlists de reproducción.
+- **Radio en tiempo real**: Reproducción sincronizada vía WebSockets para todos los oyentes conectados.
+- **Mixer en vivo**: Transmisión de audio en vivo desde el micrófono del administrador (WebM/Opus vía MediaRecorder).
+- **Gestión de canciones y anuncios**: Carga y administración de archivos MP3 desde el panel de administración.
+- **Inserción de anuncios**: Sistema de prioridad ponderada que inserta anuncios entre canciones, evitando repeticiones inmediatas.
+- **Playlists**: Creación y gestión de listas de reproducción.
+- **Himno nacional**: Reproducción automática del himno a las 6:00, 12:00, 18:00 y 00:00 (zona horaria Colombia) vía `node-cron`.
+- **Autenticación**: Registro e inicio de sesión con bcrypt + JWT en cookies/sesiones.
+- **API REST**: Endpoints para consultar canciones, anuncios y playlists.
+
+## Stack
+
+| Capa | Tecnología |
+|------|-----------|
+| Backend | Express 4, Node.js |
+| Base de datos | SQLite3 |
+| Tiempo real | ws (WebSockets) |
+| Streaming | HTTP chunked (audio/webm) |
+| Vistas | Handlebars (SSR) |
+| Auth | bcrypt + JWT + express-session |
+| Tareas programadas | node-cron |
+
+## Arquitectura
+
+```
+server.js                 # Punto de entrada — Express, WebSocket upgrade, static files
+├── routes/               # Definición de rutas
+│   ├── homeRoutes.js     # Página del oyente
+│   ├── radioRoutes.js    # Panel de radio + stream del mixer
+│   ├── playerRoutes.js   # Reproductor
+│   ├── songRoutes.js     # CRUD canciones
+│   ├── adRoutes.js       # CRUD anuncios
+│   ├── playlistRoutes.js # CRUD playlists
+│   └── userRoutes.js     # Registro/login
+├── controllers/          # Lógica de negocio
+├── model/                # Acceso a datos (SQL directo sobre SQLite3)
+├── middleware/            # Verificación de sesión, red, inactividad
+├── utils/
+│   ├── sockets.js        # Core: WebSocket server, sincronización, rotación, cron
+│   ├── mixerStream.js    # Streaming HTTP para audio en vivo del mixer
+│   ├── multerConfig.js   # Configuración de uploads (Multer)
+│   └── ...
+├── views/                # Templates Handlebars
+│   ├── layouts/main.hbs  # Layout principal
+│   ├── home.hbs          # Página del oyente
+│   ├── radio.hbs         # Panel de administración
+│   └── ...
+├── public/
+│   ├── css/              # Estilos
+│   ├── js/               # Scripts del cliente
+│   │   ├── radioListener.js  # Cliente oyente (WebSocket + audio)
+│   │   └── radioAdmin.js     # Panel admin (mixer, controles)
+│   ├── assets/           # Logo, favicon
+│   ├── music/            # Archivos MP3 de canciones
+│   ├── audios/           # Archivos MP3 de anuncios
+│   └── himno/            # Himno nacional
+└── database/
+    ├── sqlLite.js        # Conexión SQLite3
+    └── player.db         # Base de datos
+```
 
 ## Requisitos previos
 
-Antes de ejecutar la aplicación, asegúrate de tener instalado lo siguiente:
-
-- Node.js (v20.13.1 o superior)
-- Crear las carpetas correspondientes dentro de la carpeta public (music, audios, himno)
+- Node.js v20.13.1 o superior
+- Crear las carpetas de media dentro de `public/` si no existen: `music/`, `audios/`, `himno/`
 
 ## Instalación
 
-1. Clona este repositorio:
-
-   ```bash
-      git clone git@github.com:Jeanpigi/radio.git
-   ```
-
-2. Ve al directorio del proyecto:
-
-   ```bash
-      cd radio
-   ```
-
-3. Instala las dependencias:
-
-   ```bash
-      npm install
-   ```
-
-4. Configura la base de datos sqllite3:
-
-- La forma básica, es crear el nombre de la base de datos, luego crear las tablas necesarias que para este caso serán: usuarios, canciones y anuncios. Nota: puedes crearla con una archivo .js en el directorio raíz del proyecto y correrlo con node.
-
 ```bash
-     node db.js
+git clone git@github.com:Jeanpigi/radio.git
+cd radio
+npm install
 ```
 
-- Las tablas que necesita son una para almacenar los usuarios, otra para alamacenar la ruta de la musica, y por último la tabla para alamcenar la ruta de los anuncios.
+### Base de datos
 
-5. Configura las variables de entorno:
+Crear la base de datos SQLite3 con las tablas necesarias (usuarios, canciones, anuncios):
 
-- Crea un archivo .env en el directorio raíz del proyecto.
-- Copia el contenido del archivo .env.example y pégalo en el archivo .env
-- Completa las variables de entorno con tus propios , estos valores son los que permiten el acceso a la base de datos.
+```bash
+node db.js
+```
 
-### Nota
+### Variables de entorno
 
-los servicios se dividen en dos, en el reproductor y la radio online, dependiendo del servicio que se requiera utilizar, asi mismo se debe correr el servidor, de igual manera puedes correr ambos servicios al mismo tiempo.
+Crear un archivo `.env` en la raíz del proyecto con las variables necesarias para la configuración de la base de datos y JWT.
 
-6. Inicia el servidor:
+### Ejecutar
 
-   ```bash
-      npm run start
-   ```
+```bash
+# Desarrollo (hot-reload)
+npm run dev
 
-7. Accede a la aplicación en tu navegador web en la siguiente URL: http://localhost:3000
+# Producción
+npm start
+```
+
+La aplicación estará disponible en `http://localhost:3000`.
 
 ## Uso
 
-1. Regístrate en la aplicación para crear una cuenta de usuario.
-2. Inicia sesión con tu cuenta de usuario.
-3. Carga canciones en formato MP3 desde la sección de administración.
-4. Carga anuncios en formato MP3 desde la sección de administración.
-5. Reproduce las canciones en el reproductor.
-6. Reproduce audio mediante la radio online.
-7. Utiliza la API para obtener información sobre las canciones.
-8. Crear playlists de reproducción.
+1. Registrarse e iniciar sesión.
+2. Subir canciones y anuncios en formato MP3 desde el panel de administración.
+3. Crear playlists y gestionar la rotación de contenido.
+4. Los oyentes acceden a la página principal y presionan play para escuchar la radio.
+5. Activar el mixer desde el panel de administración para transmitir audio en vivo.
 
 ## API
 
-La aplicación proporciona las siguientes rutas de la API:
-
-- `GET /api/canciones`: Obtiene todas las canciones.
-- `GET /api/anuncios`: Obtiene todos los anuncios.
-- `GET /api/canciones/:id`: Obtiene una cancion por su ID.
-- `GET /api/anuncios/:id`: Obtiene un anuncio por su ID.
-- `GET /api/playlist/:id`: Obtiene una playlist por su ID.
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/api/canciones` | Obtener todas las canciones |
+| GET | `/api/canciones/:id` | Obtener una canción por ID |
+| GET | `/api/anuncios` | Obtener todos los anuncios |
+| GET | `/api/anuncios/:id` | Obtener un anuncio por ID |
+| GET | `/api/playlist/:id` | Obtener una playlist por ID |
 
 ## Contribución
 
-Si deseas contribuir a este proyecto y ayudarlo a crecer, sigue estos pasos:
+1. Crear un fork del repositorio.
+2. Crear una rama: `git checkout -b nombre_de_rama`.
+3. Realizar los cambios y commits.
+4. Push: `git push origin nombre_de_rama`.
+5. Abrir un pull request.
 
-1. Crea un fork de este repositorio.
-2. Crea una nueva rama con un nombre descriptivo: `git checkout -b nombre_de_rama`.
-3. Realiza las modificaciones necesarias y realiza los commits correspondientes.
-4. Envía tus cambios al repositorio remoto: `git push origin nombre_de_rama`.
-5. Abre un pull request para revisar tus cambios y fusionarlos con la rama principal.
+## Autor
 
-# Authors
-
-- **Jean Pierre Giovanni Arenas Ortiz**
+**Jean Pierre Giovanni Arenas Ortiz**
 
 ## Licencia
 
-Esta obra está bajo una [Licencia Creative Commons Atribución-NoComercial-SinDerivadas 4.0 Internacional](http://creativecommons.org/licenses/by-nc-nd/4.0/deed.es_ES).
+[Creative Commons Atribución-NoComercial-SinDerivadas 4.0 Internacional](http://creativecommons.org/licenses/by-nc-nd/4.0/deed.es_ES)
