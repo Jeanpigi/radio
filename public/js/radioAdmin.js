@@ -8,15 +8,38 @@ const elements = {
   pauseResumeText: document.getElementById("pause-resume-text"),
   btnNext: document.getElementById("btn-next"),
   btnAd: document.getElementById("btn-ad"),
-  btnTalk: document.getElementById("btn-talk"),
-  talkText: document.getElementById("talk-text"),
   adminAudio: document.getElementById("admin-audio"),
   playlistsContainer: document.getElementById("playlists-container"),
+  inputSelect: document.getElementById("audio-input-select"),
+  btnDetect: document.getElementById("btn-detect-devices"),
+  detectIcon: document.getElementById("detect-icon"),
+  btnToggleMixer: document.getElementById("btn-toggle-mixer"),
+  volumeSlider: document.getElementById("global-volume"),
+  volumeValue: document.getElementById("volume-value"),
+  mixerLiveBadge: document.getElementById("mixer-live-badge"),
+  deviceHint: document.getElementById("device-hint"),
+  mixerGainRow: document.getElementById("mixer-gain-row"),
+  mixerGainSlider: document.getElementById("mixer-gain"),
+  mixerGainValue: document.getElementById("mixer-gain-value"),
 };
 
 let isPaused = false;
-let isTalking = false;
-let mediaRecorder = null;
+
+// Entrada de audio seleccionada (micrófono, mixer USB, etc.)
+let selectedInputId = null;
+
+// Estado del modo mixer
+let mixerMode = false;
+let mixerRecorder = null;
+let mixerStream = null;
+
+// Pipeline de audio
+let audioCtx   = null;
+let gainNode   = null;
+let analyser   = null;
+let levelRaf   = null; // requestAnimationFrame para el medidor de nivel
+
+// ── WebSocket ─────────────────────────────────────────────────────────────────
 
 socket.addEventListener("open", () => {
   socket.send(JSON.stringify({ type: "adminConnect" }));
@@ -26,6 +49,10 @@ socket.addEventListener("message", (event) => {
   const data = JSON.parse(event.data);
   if (data.type === "nowPlaying") {
     updateNowPlaying(data);
+    if (data.mixerMode && !mixerMode) {
+      updateMixerUI(true);
+      showHint("El mixer estaba al aire. Detecta los dispositivos y actívalo de nuevo.");
+    }
   } else if (data.type === "radioState") {
     isPaused = data.paused;
     updatePauseResumeButton();
@@ -34,13 +61,16 @@ socket.addEventListener("message", (event) => {
     } else if (elements.adminAudio.src) {
       elements.adminAudio.play().catch(() => {});
     }
+  } else if (data.type === "mixerState") {
+    updateMixerUI(data.active);
   }
 });
+
+// ── Reproductor / Now Playing ─────────────────────────────────────────────────
 
 const updateNowPlaying = (data) => {
   const { path, kind, paused, playlistMode, playlistName, playlistIndex, playlistTotal } = data;
 
-  // Limpiar highlights previos
   document.querySelectorAll(".radio__song-item--active").forEach((el) => {
     el.classList.remove("radio__song-item--active");
   });
@@ -58,12 +88,9 @@ const updateNowPlaying = (data) => {
     elements.adminAudio.load();
     if (!paused) elements.adminAudio.play().catch(() => {});
 
-    // Highlight el elemento activo (canción o anuncio)
     const selector = kind === "ad" ? ".radio__ad-item" : ".radio__song-item:not(.radio__ad-item)";
     document.querySelectorAll(selector).forEach((item) => {
-      if (item.dataset.path === path) {
-        item.classList.add("radio__song-item--active");
-      }
+      if (item.dataset.path === path) item.classList.add("radio__song-item--active");
     });
   } else {
     elements.nowPlayingTitle.textContent = "— Sin reproducir —";
@@ -100,12 +127,23 @@ elements.adminAudio.addEventListener("ended", () => {
   socket.send(JSON.stringify({ type: "adminNext" }));
 });
 
+// Buscador de canciones
+const songsSearch = document.getElementById("songs-search");
+if (songsSearch) {
+  songsSearch.addEventListener("input", () => {
+    const q = songsSearch.value.toLowerCase().trim();
+    document.querySelectorAll(".radio__song-item:not(.radio__ad-item)").forEach((item) => {
+      const name = item.querySelector(".radio__song-filename").textContent.toLowerCase();
+      item.style.display = name.includes(q) ? "" : "none";
+    });
+  });
+}
+
 // Canciones individuales
 document.querySelectorAll(".btn-play-song").forEach((btn) => {
   btn.addEventListener("click", () => {
     const path = btn.dataset.path;
     socket.send(JSON.stringify({ type: "adminPlay", path }));
-
     document.querySelectorAll(".radio__song-item").forEach((item) => {
       item.classList.remove("radio__song-item--active");
     });
@@ -118,7 +156,6 @@ document.querySelectorAll(".btn-play-ad").forEach((btn) => {
   btn.addEventListener("click", () => {
     const path = btn.dataset.path;
     socket.send(JSON.stringify({ type: "adminPlayAd", path }));
-
     document.querySelectorAll(".radio__song-item").forEach((item) => {
       item.classList.remove("radio__song-item--active");
     });
@@ -126,52 +163,259 @@ document.querySelectorAll(".btn-play-ad").forEach((btn) => {
   });
 });
 
-// Micrófono / DJ Talk
-const startTalking = async () => {
-  if (isTalking) return;
+// ── Volumen global ────────────────────────────────────────────────────────────
+
+elements.volumeSlider.addEventListener("input", () => {
+  const vol = Number(elements.volumeSlider.value) / 100;
+  elements.volumeValue.textContent = elements.volumeSlider.value + "%";
+  socket.send(JSON.stringify({ type: "adminVolume", value: vol }));
+});
+
+// ── Detección de dispositivos ─────────────────────────────────────────────────
+
+const populateDevices = async () => {
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const inputs = devices.filter((d) => d.kind === "audioinput");
+
+  const savedId = localStorage.getItem("radio_mixer_inputId");
+
+  elements.inputSelect.innerHTML = '<option value="">— Selecciona una entrada —</option>';
+  inputs.forEach((d) => {
+    if (d.deviceId === "default" || d.deviceId === "communications") return;
+    const opt = document.createElement("option");
+    opt.value = d.deviceId;
+    opt.textContent = d.label || `Entrada de audio ${elements.inputSelect.options.length}`;
+    elements.inputSelect.appendChild(opt);
+  });
+  elements.inputSelect.disabled = false;
+
+  // Restaurar el último dispositivo usado o auto-seleccionar el primero disponible
+  const saved = savedId ? inputs.find((d) => d.deviceId === savedId) : null;
+  const first = inputs.find((d) => d.deviceId !== "default" && d.deviceId !== "communications");
+  const toSelect = saved || first;
+
+  if (toSelect) {
+    elements.inputSelect.value = toSelect.deviceId;
+    selectedInputId = toSelect.deviceId;
+    hideHint();
+  } else {
+    showHint("No se encontraron entradas de audio. Conecta el dispositivo y presiona Detectar.");
+  }
+
+  updateToggleButton();
+};
+
+elements.inputSelect.addEventListener("change", () => {
+  const newId = elements.inputSelect.value || null;
+  if (newId !== selectedInputId && mixerMode) stopMixerMode();
+  selectedInputId = newId;
+  if (selectedInputId) {
+    localStorage.setItem("radio_mixer_inputId", selectedInputId);
+    hideHint();
+  } else {
+    localStorage.removeItem("radio_mixer_inputId");
+  }
+  updateToggleButton();
+});
+
+elements.btnDetect.addEventListener("click", async () => {
+  elements.detectIcon.classList.add("fa-spin");
+  elements.btnDetect.disabled = true;
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    // getUserMedia es necesario para que el navegador revele los labels de los dispositivos
+    const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    tempStream.getTracks().forEach((t) => t.stop());
+    await populateDevices();
+  } catch (err) {
+    showHint("No se pudo acceder al audio: " + err.message);
+  } finally {
+    elements.detectIcon.classList.remove("fa-spin");
+    elements.btnDetect.disabled = false;
+  }
+});
+
+// Auto-detectar al cargar si el navegador ya tiene permisos de sesiones previas
+navigator.mediaDevices.enumerateDevices().then((devices) => {
+  if (devices.some((d) => d.kind === "audioinput" && d.label)) {
+    populateDevices();
+  }
+}).catch(() => {});
+
+// ── Modo Mixer ────────────────────────────────────────────────────────────────
+// Cuando está activo: los oyentes reciben la entrada de audio seleccionada (micrófono/mixer/USB).
+// El adminAudio sigue reproduciendo canciones localmente para que el admin escuche.
+// Cuando está inactivo: los oyentes reciben las canciones del reproductor normalmente.
+
+const startMixerMode = async () => {
+  if (mixerMode) return;
+  if (!selectedInputId) return;
+  try {
+    mixerStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        deviceId: { exact: selectedInputId },
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+      },
+      video: false,
+    });
+
+    audioCtx = new AudioContext();
+    gainNode = audioCtx.createGain();
+    gainNode.gain.value = Number(elements.mixerGainSlider.value) / 100;
+
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0.6;
+
+    const streamSource = audioCtx.createMediaStreamSource(mixerStream);
+    const destination = audioCtx.createMediaStreamDestination();
+    streamSource.connect(gainNode);
+    gainNode.connect(analyser);
+    gainNode.connect(destination);
+
+    startLevelMeter();
+
     const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
       ? "audio/webm;codecs=opus"
       : "audio/webm";
-    mediaRecorder = new MediaRecorder(stream, { mimeType });
-    mediaRecorder.ondataavailable = (e) => {
+
+    mixerRecorder = new MediaRecorder(destination.stream, {
+      mimeType,
+      audioBitsPerSecond: 192000,
+    });
+
+    mixerRecorder.ondataavailable = (e) => {
       if (e.data.size > 0 && socket.readyState === WebSocket.OPEN) {
         socket.send(e.data);
       }
     };
-    mediaRecorder.start(250);
-    isTalking = true;
-    elements.adminAudio.volume = 0.15;
-    elements.btnTalk.classList.add("radio__btn--talking");
-    elements.talkText.textContent = "Al aire...";
-    socket.send(JSON.stringify({ type: "adminTalkStart" }));
+
+    // Notificar primero para que el servidor entre en mixerMode antes de recibir datos binarios
+    socket.send(JSON.stringify({ type: "adminMixerStart" }));
+    // Asegurar que el AudioContext está corriendo (Chrome puede iniciarlo suspendido)
+    await audioCtx.resume();
+    mixerRecorder.start(100);
+    mixerMode = true;
+    updateMixerUI(true);
+
   } catch (err) {
-    alert("No se pudo acceder al micrófono: " + err.message);
+    showHint("Error al acceder al dispositivo: " + err.message);
   }
 };
 
-const stopTalking = () => {
-  if (!isTalking) return;
-  isTalking = false;
-  if (mediaRecorder) {
-    mediaRecorder.stop();
-    mediaRecorder.stream.getTracks().forEach((t) => t.stop());
-    mediaRecorder = null;
+const stopMixerMode = () => {
+  if (!mixerMode) return;
+  mixerMode = false;
+
+  if (mixerRecorder) {
+    mixerRecorder.stop();
+    mixerRecorder = null;
   }
-  socket.send(JSON.stringify({ type: "adminTalkStop" }));
-  elements.adminAudio.volume = 1;
-  elements.btnTalk.classList.remove("radio__btn--talking");
-  elements.talkText.textContent = "Hablar";
+  if (mixerStream) {
+    mixerStream.getTracks().forEach((t) => t.stop());
+    mixerStream = null;
+  }
+  stopLevelMeter();
+
+  if (audioCtx) {
+    audioCtx.close();
+    audioCtx = null;
+    gainNode = null;
+    analyser = null;
+  }
+
+  socket.send(JSON.stringify({ type: "adminMixerStop" }));
+  updateMixerUI(false);
 };
 
-elements.btnTalk.addEventListener("mousedown", startTalking);
-elements.btnTalk.addEventListener("mouseup", stopTalking);
-elements.btnTalk.addEventListener("mouseleave", stopTalking);
-elements.btnTalk.addEventListener("touchstart", (e) => { e.preventDefault(); startTalking(); });
-elements.btnTalk.addEventListener("touchend", stopTalking);
+elements.btnToggleMixer.addEventListener("click", () => {
+  if (mixerMode) {
+    stopMixerMode();
+  } else {
+    startMixerMode();
+  }
+});
 
-// Playlists
+// ── Medidor de nivel de entrada ───────────────────────────────────────────────
+
+const startLevelMeter = () => {
+  const levelRow  = document.getElementById("mixer-level-row");
+  const levelBar  = document.getElementById("mixer-level-bar");
+  const levelMeter = document.getElementById("mixer-level-meter");
+  if (!analyser || !levelBar) return;
+  if (levelRow) levelRow.style.display = "";
+
+  const data = new Uint8Array(analyser.frequencyBinCount);
+
+  const tick = () => {
+    analyser.getByteFrequencyData(data);
+    const avg = data.reduce((a, b) => a + b, 0) / data.length;
+    const pct = Math.min(100, avg * 2.5);
+    levelBar.style.width = pct + "%";
+    if (levelMeter) levelMeter.classList.toggle("vad-active", pct > 3);
+    levelRaf = requestAnimationFrame(tick);
+  };
+  levelRaf = requestAnimationFrame(tick);
+};
+
+const stopLevelMeter = () => {
+  if (levelRaf) { cancelAnimationFrame(levelRaf); levelRaf = null; }
+  const levelRow  = document.getElementById("mixer-level-row");
+  const levelBar  = document.getElementById("mixer-level-bar");
+  const levelMeter = document.getElementById("mixer-level-meter");
+  if (levelBar)  levelBar.style.width = "0%";
+  if (levelMeter) levelMeter.classList.remove("vad-active");
+  if (levelRow)  levelRow.style.display = "none";
+};
+
+// ── UI del mixer ──────────────────────────────────────────────────────────────
+
+const updateToggleButton = () => {
+  if (!elements.btnToggleMixer) return;
+  if (mixerMode) {
+    elements.btnToggleMixer.innerHTML = '<i class="fas fa-stop-circle"></i> Desactivar Mixer';
+    elements.btnToggleMixer.classList.add("radio__btn--mixer-active");
+    elements.btnToggleMixer.disabled = false;
+  } else {
+    elements.btnToggleMixer.innerHTML = '<i class="fas fa-broadcast-tower"></i> Activar Mixer';
+    elements.btnToggleMixer.classList.remove("radio__btn--mixer-active");
+    elements.btnToggleMixer.disabled = !selectedInputId;
+  }
+};
+
+const updateMixerUI = (active) => {
+  if (active) {
+    if (elements.mixerLiveBadge) elements.mixerLiveBadge.style.display = "inline-flex";
+    if (elements.mixerGainRow) elements.mixerGainRow.style.display = "";
+    elements.inputSelect.classList.add("radio__select--active");
+  } else {
+    if (elements.mixerLiveBadge) elements.mixerLiveBadge.style.display = "none";
+    if (elements.mixerGainRow) elements.mixerGainRow.style.display = "none";
+    elements.inputSelect.classList.remove("radio__select--active");
+  }
+  updateToggleButton();
+};
+
+function showHint(msg) {
+  if (!elements.deviceHint) return;
+  elements.deviceHint.textContent = msg;
+  elements.deviceHint.style.display = "";
+}
+
+function hideHint() {
+  if (!elements.deviceHint) return;
+  elements.deviceHint.style.display = "none";
+}
+
+elements.mixerGainSlider.addEventListener("input", () => {
+  const pct = Number(elements.mixerGainSlider.value);
+  elements.mixerGainValue.textContent = pct + "%";
+  if (gainNode) gainNode.gain.value = pct / 100;
+});
+
+// ── Playlists ─────────────────────────────────────────────────────────────────
+
 const loadPlaylists = async () => {
   try {
     const res = await fetch("/api/playlists");
@@ -215,7 +459,6 @@ const renderPlaylists = (playlists) => {
     btn.addEventListener("click", () => {
       const playlistId = Number(btn.dataset.id);
       socket.send(JSON.stringify({ type: "adminPlaylist", playlistId }));
-
       document.querySelectorAll(".radio__playlist-item").forEach((item) => {
         item.classList.remove("radio__playlist-item--active");
       });

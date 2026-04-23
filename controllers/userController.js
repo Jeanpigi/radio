@@ -3,9 +3,11 @@ const {
   createUser,
   getUserByUsername,
   comparePasswords,
+  updateSessionToken,
 } = require("../model/userLite");
 
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 
 const signup = async (req, res) => {
   const { username, password } = req.body;
@@ -47,10 +49,15 @@ const login = async (req, res) => {
       return res.redirect("/");
     }
 
-    // Firmar el token con un objeto en lugar de una cadena
-    const token = jwt.sign({ username: username }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
+    // Generar token de sesión único e invalidar sesiones anteriores
+    const sessionToken = crypto.randomUUID();
+    await updateSessionToken(user[0].id, sessionToken);
+
+    const token = jwt.sign(
+      { username: username, sessionToken },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
 
     res.cookie("token", token);
 

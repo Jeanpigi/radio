@@ -20,7 +20,12 @@
     </div>
 
     <div class="radio__monitor">
-      <span class="radio__label"><i class="fas fa-headphones"></i> Monitor admin:</span>
+      <div class="radio__monitor-header">
+        <span class="radio__label"><i class="fas fa-headphones"></i> Monitor:</span>
+        <span id="mixer-live-badge" class="radio__mixer-live-badge" style="display:none">
+          <i class="fas fa-circle"></i> Mixer al aire
+        </span>
+      </div>
       <audio id="admin-audio" controls style="width:100%; margin-top:0.5rem;"></audio>
     </div>
 
@@ -35,10 +40,58 @@
       <button id="btn-ad" class="radio__btn radio__btn--accent">
         <i class="fas fa-random"></i> Anuncio aleatorio
       </button>
-      <button id="btn-talk" class="radio__btn radio__btn--talk">
-        <i class="fas fa-microphone" id="talk-icon"></i>
-        <span id="talk-text">Hablar</span>
-      </button>
+    </div>
+
+    <div class="radio__mixer">
+
+      {{!-- Fila 1: Entrada de audio a transmitir (micrófono, mixer USB, etc.) --}}
+      <div class="radio__mixer-row">
+        <label class="radio__label" for="audio-input-select">
+          <i class="fas fa-microphone"></i> Entrada a transmitir:
+        </label>
+        <select id="audio-input-select" class="radio__select" disabled>
+          <option value="">— Selecciona una entrada —</option>
+        </select>
+        <button id="btn-detect-devices" class="radio__btn radio__btn--secondary" type="button">
+          <i class="fas fa-sync-alt" id="detect-icon"></i> Detectar
+        </button>
+        <button id="btn-toggle-mixer" class="radio__btn radio__btn--mixer" type="button" disabled>
+          <i class="fas fa-broadcast-tower"></i> Activar Mixer
+        </button>
+      </div>
+
+      <p id="device-hint" class="radio__device-hint" style="display:none">
+        Conecta el dispositivo y presiona <strong>Detectar</strong>.
+      </p>
+
+      {{!-- Fila 2: Volumen global --}}
+      <div class="radio__mixer-row">
+        <label class="radio__label" for="global-volume">
+          <i class="fas fa-volume-up"></i> Volumen oyentes:
+        </label>
+        <input type="range" id="global-volume" class="radio__volume-slider" min="0" max="100" value="100">
+        <span id="volume-value" class="radio__volume-value">100%</span>
+      </div>
+
+      {{!-- Fila 3: Ganancia del stream (visible solo con mixer activo) --}}
+      <div class="radio__mixer-row" id="mixer-gain-row" style="display:none">
+        <label class="radio__label" for="mixer-gain">
+          <i class="fas fa-sliders-h"></i> Ganancia entrada:
+        </label>
+        <input type="range" id="mixer-gain" class="radio__volume-slider" min="0" max="200" value="100">
+        <span id="mixer-gain-value" class="radio__volume-value">100%</span>
+      </div>
+
+      {{!-- Fila 4: Nivel de audio entrante (visible solo con mixer activo) --}}
+      <div class="radio__mixer-row radio__mixer-vad" id="mixer-level-row" style="display:none">
+        <label class="radio__label">
+          <i class="fas fa-signal"></i> Nivel entrada:
+        </label>
+        <div class="vad-indicator" id="mixer-level-meter">
+          <div class="vad-bar" id="mixer-level-bar"></div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -47,6 +100,9 @@
     <div class="radio__songs">
       <h2 class="radio__songs-title"><i class="fas fa-music"></i> Canciones</h2>
       {{#if canciones.length}}
+      <div class="radio__songs-search-wrap">
+        <input type="text" id="songs-search" class="radio__songs-search" placeholder="Buscar canción...">
+      </div>
       <div class="radio__songs-list">
         {{#each canciones}}
         <div class="radio__song-item" data-path="{{this.path}}">

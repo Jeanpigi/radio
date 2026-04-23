@@ -76,9 +76,31 @@ const comparePasswords = async (password, hashedPassword) => {
   }
 };
 
+const updateSessionToken = async (userId, token) => {
+  return new Promise((resolve, reject) => {
+    db.run(
+      "UPDATE users SET session_token = ? WHERE id = ?",
+      [token, userId],
+      (err) => (err ? reject(err) : resolve())
+    );
+  });
+};
+
+const getSessionTokenByUsername = async (username) => {
+  return new Promise((resolve, reject) => {
+    db.get(
+      "SELECT session_token FROM users WHERE username = ?",
+      [username],
+      (err, row) => (err ? reject(err) : resolve(row ? row.session_token : null))
+    );
+  });
+};
+
 module.exports = {
   checkIfUsernameExists,
   createUser,
   getUserByUsername,
   comparePasswords,
+  updateSessionToken,
+  getSessionTokenByUsername,
 };

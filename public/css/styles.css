@@ -1,21 +1,33 @@
-@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 
 :root {
-  --background: #e0e5ec;
-  --gray: #797d7f;
-  --white: #fff;
-  --black: #24292e;
-  --button: #f4782b;
-  --hoveButton: #e8531b;
-  --whatsapp: #25d366;
-  --select-border: #777;
-  --select-focus: blue;
-  --select-arrow: var(--select-border);
+  --accent:       #FF3B5C;
+  --accent-hover: #E5304F;
+  --accent-soft:  rgba(255,59,92,0.1);
+  --bg:           #F5F5F7;
+  --surface:      #FFFFFF;
+  --surface-2:    #F5F5F7;
+  --text:         #1D1D1F;
+  --text-2:       #6E6E73;
+  --text-3:       #AEAEB2;
+  --border:       #D2D2D7;
+  --shadow-sm:    0 1px 4px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:    0 4px 20px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
+  --shadow-lg:    0 8px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
+  --radius-sm:    8px;
+  --radius-md:    12px;
+  --radius-lg:    16px;
+  --radius-xl:    22px;
+  /* backward compat */
+  --background:   var(--bg);
+  --gray:         var(--text-2);
+  --white:        #fff;
+  --black:        var(--text);
+  --button:       var(--accent);
+  --hoveButton:   var(--accent-hover);
 }
 
-*,
-*::before,
-*::after {
+*, *::before, *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -23,7 +35,9 @@
 
 html {
   font-size: 62.5%;
-  font-family: "Raleway", sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
@@ -31,143 +45,109 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
 }
 
-/* Estilos de Header*/
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ── Global Header ── */
 .container__header {
-  background: linear-gradient(to right, #472513, #000000, #382d21);
-  height: 70px;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 1.5rem;
+  padding: 0 2.4rem;
   flex-shrink: 0;
+  background: rgba(255,255,255,0.80);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid rgba(210,210,215,0.6);
 }
 
 .logo {
   display: flex;
   align-items: center;
-  overflow: visible;
 }
 
 .logo img {
-  height: 60px;
+  height: 34px;
 }
 
 .list__url {
   list-style: none;
   display: flex;
   align-items: center;
-  gap: 2rem;
+  gap: 0.4rem;
 }
 
 .list__li {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 1.5rem;
+  font-weight: 500;
 }
 
-.list__li,
-a {
-  color: var(--white);
-  text-decoration: none;
-  font-size: 20px;
-  font-weight: 800;
+.list__li a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--text-2);
+  font-size: 1.6rem;
+  transition: background 0.15s, color 0.15s;
 }
 
-/* Estilos de cuerpo Container */
+.list__li a:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* ── Body container ── */
 .container {
-  padding: 10px;
   flex: 1;
 }
 
-/* Estilos del reproductor*/
-.content__song {
-  overflow: scroll;
-  height: 332px;
-  background: whitesmoke;
-  margin: 0 auto;
-  padding: 1em;
-  font: 100%/1.4 serif;
-  border: 1px solid rgba(0, 0, 0, 0.25);
-}
-
-.delete-form {
-  display: grid;
-  justify-content: center;
-  grid-auto-columns: 1fr 1fr;
-}
-
-.link__url {
-  color: var(--black);
-  text-decoration: none;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-  /* Sombras del texto */
-  font-size: 20px;
-}
-
-/* Estilos del footer*/
+/* ── Footer ── */
 .footer__container {
-  background: #24292e;
-  width: 100%;
-  height: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 0 2rem;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  height: 52px;
   flex-shrink: 0;
 }
 
-.footer__content {
-  display: grid;
-  justify-content: flex-end;
-  align-items: center;
+/* ── Legacy scroll list ── */
+.content__song {
+  overflow-y: auto;
+  height: 332px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem;
 }
 
-/* Estilos de WhatsApp */
-.whatsapp {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background-color: var(--whatsapp);
-  padding: 10px;
-  border-radius: 50%;
-  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
-  z-index: 1000;
+.delete-form {
+  display: block;
+  margin: 0;
 }
 
-.whatsapp i {
-  font-size: 24px;
-  color: var(--white);
-}
+/* ── Scrollbar global ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
 
-.whatsapp:hover {
-  background-color: #128c7e;
-}
-
-@media screen and (max-width: 600px) {
+/* ── Responsive ── */
+@media (max-width: 600px) {
   .container__header {
-    height: 56px;
-    padding: 0 1rem;
+    height: 48px;
+    padding: 0 1.4rem;
   }
-
-  .logo img {
-    height: 44px;
-  }
-
-  .list__url {
-    gap: 1.2rem;
-  }
-
-  .list__li {
-    font-size: 16px;
-  }
-
-  .player {
-    width: 280px;
-  }
-
-  .player__btn--medium {
-    min-height: 58px;
-    min-width: 62px;
-  }
+  .logo img { height: 28px; }
 }

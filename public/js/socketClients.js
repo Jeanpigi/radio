@@ -16,11 +16,9 @@ let settings = {
   currentPath: null,
 };
 
-// MSE para voz del DJ
+let baseVolume = 1;
+let inMixerMode = false;
 let talkAudio = null;
-let talkMediaSource = null;
-let talkSourceBuffer = null;
-let talkQueue = [];
 
 const wsUrl = `ws://${window.location.host}`;
 const socket = new WebSocket(wsUrl);
@@ -36,24 +34,30 @@ const bindEvents = () => {
     console.log("Conectado a la radio");
   });
 
-  socket.addEventListener("message", async (event) => {
-    if (event.data instanceof Blob) {
-      const buf = await event.data.arrayBuffer();
-      talkQueue.push(buf);
-      flushTalkQueue();
-      return;
-    }
+  socket.addEventListener("message", (event) => {
     const data = JSON.parse(event.data);
     if (data.type === "play" || data.type === "playAd" || data.type === "himno") {
-      handlePlay(data.path, data.currentTime || 0);
+      if (!inMixerMode) handlePlay(data.path, data.currentTime || 0);
     } else if (data.type === "pause") {
       handleRadioPause();
-    } else if (data.type === "talkStart") {
-      elements.audioPlayer.volume = 0.15;
-      setupTalkStream();
-    } else if (data.type === "talkStop") {
-      elements.audioPlayer.volume = 1;
-      teardownTalkStream();
+    } else if (data.type === "mixerStart") {
+      inMixerMode = true;
+      elements.audioPlayer.pause();
+      talkAudio = new Audio("/stream/mixer");
+      talkAudio.volume = baseVolume;
+      talkAudio.play().catch(() => {});
+    } else if (data.type === "mixerStop") {
+      inMixerMode = false;
+      if (talkAudio) {
+        talkAudio.pause();
+        talkAudio.src = "";
+        talkAudio = null;
+      }
+      elements.audioPlayer.volume = baseVolume;
+    } else if (data.type === "setVolume") {
+      baseVolume = data.value;
+      elements.audioPlayer.volume = data.value;
+      if (talkAudio) talkAudio.volume = data.value;
     }
   });
 
@@ -149,44 +153,6 @@ const formatTime = (time) => {
 };
 
 const padTime = (t) => (t < 10 ? `0${t}` : t);
-
-const setupTalkStream = () => {
-  talkAudio = new Audio();
-  talkAudio.autoplay = true;
-  talkMediaSource = new MediaSource();
-  talkAudio.src = URL.createObjectURL(talkMediaSource);
-  talkMediaSource.addEventListener("sourceopen", () => {
-    try {
-      const mimeType = MediaSource.isTypeSupported("audio/webm;codecs=opus")
-        ? "audio/webm;codecs=opus"
-        : "audio/webm";
-      talkSourceBuffer = talkMediaSource.addSourceBuffer(mimeType);
-      talkSourceBuffer.mode = "sequence";
-      talkSourceBuffer.addEventListener("updateend", flushTalkQueue);
-      flushTalkQueue();
-    } catch (e) {
-      console.error("MSE error:", e);
-    }
-  });
-};
-
-const flushTalkQueue = () => {
-  if (!talkSourceBuffer || talkSourceBuffer.updating || talkQueue.length === 0) return;
-  talkSourceBuffer.appendBuffer(talkQueue.shift());
-};
-
-const teardownTalkStream = () => {
-  talkQueue = [];
-  if (talkMediaSource && talkMediaSource.readyState === "open") {
-    try { talkMediaSource.endOfStream(); } catch (_) {}
-  }
-  if (talkAudio) {
-    talkAudio.src = "";
-    talkAudio = null;
-  }
-  talkMediaSource = null;
-  talkSourceBuffer = null;
-};
 
 const debounce = (func, delay) => {
   let timeoutId;

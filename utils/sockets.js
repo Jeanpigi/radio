@@ -9,13 +9,13 @@ const {
   obtenerAnuncioAleatorioConPrioridad,
   obtenerAudioAleatoriaSinRepetir,
 } = require("./getAudio");
+const mixerStream = require("./mixerStream");
 
 module.exports = (server) => {
   const wss = new WebSocket.Server({ server });
 
   const listeners = new Set();
   let adminWs = null;
-  let adminTalking = false;
 
   const recentlyPlayedSongs = [];
   const recentlyPlayedAds = [];
@@ -34,6 +34,8 @@ module.exports = (server) => {
     startedAt: null,  // timestamp cuando empezó a sonar
     paused: false,
     pausedAt: null,   // timestamp cuando se pausó
+    volume: 1,        // volumen global (0.0 - 1.0)
+    mixerMode: false, // true cuando el mixer transmite directamente
   };
 
   // Timer de seguridad para avanzar automáticamente cuando termina un anuncio
@@ -139,12 +141,8 @@ module.exports = (server) => {
   const handleAdminMessages = (ws) => {
     ws.on("message", async (message, isBinary) => {
       if (isBinary) {
-        if (adminTalking) {
-          listeners.forEach((client) => {
-            if (client.readyState === WebSocket.OPEN) {
-              client.send(message, { binary: true });
-            }
-          });
+        if (radioState.mixerMode) {
+          mixerStream.push(message);
         }
         return;
       }
@@ -204,12 +202,6 @@ module.exports = (server) => {
         }
       } else if (data.type === "adminNext") {
         await advanceToNextSong();
-      } else if (data.type === "adminTalkStart") {
-        adminTalking = true;
-        broadcastToListeners({ type: "talkStart" });
-      } else if (data.type === "adminTalkStop") {
-        adminTalking = false;
-        broadcastToListeners({ type: "talkStop" });
       } else if (data.type === "adminAd") {
         try {
           const ads = await getAllAds();
@@ -230,14 +222,36 @@ module.exports = (server) => {
         broadcastToListeners({ type: "playAd", path: adPath, currentTime: 0 });
         notifyAdmin({ type: "nowPlaying", path: adPath, kind: "ad" });
         setAdTimer(adPath);
+      } else if (data.type === "adminVolume") {
+        const vol = Math.min(1, Math.max(0, Number(data.value) || 0));
+        radioState.volume = vol;
+        broadcastToListeners({ type: "setVolume", value: vol });
+      } else if (data.type === "adminMixerStart") {
+        radioState.mixerMode = true;
+        broadcastToListeners({ type: "mixerStart" });
+        notifyAdmin({ type: "mixerState", active: true });
+        console.log("Modo mixer activado");
+      } else if (data.type === "adminMixerStop") {
+        radioState.mixerMode = false;
+        mixerStream.reset();
+        broadcastToListeners({ type: "mixerStop" });
+        notifyAdmin({ type: "mixerState", active: false });
+        console.log("Modo mixer desactivado");
+        setTimeout(() => {
+          listeners.forEach((client) => syncListenerState(client));
+        }, 600);
       }
     });
 
     ws.on("close", () => {
       adminWs = null;
-      if (adminTalking) {
-        adminTalking = false;
-        broadcastToListeners({ type: "talkStop" });
+      if (radioState.mixerMode) {
+        radioState.mixerMode = false;
+        mixerStream.reset();
+        broadcastToListeners({ type: "mixerStop" });
+        setTimeout(() => {
+          listeners.forEach((client) => syncListenerState(client));
+        }, 600);
       }
       console.log("Admin desconectado");
     });
@@ -258,6 +272,14 @@ module.exports = (server) => {
   };
 
   const syncListenerState = (ws) => {
+    if (radioState.volume !== 1) {
+      send(ws, { type: "setVolume", value: radioState.volume });
+    }
+    // En modo mixer el listener espera el stream binario, no archivos
+    if (radioState.mixerMode) {
+      send(ws, { type: "mixerStart" });
+      return;
+    }
     if (!radioState.path || radioState.paused) return;
     const currentTime = getElapsed();
     const msgType = radioState.type === "himno" ? "himno" : radioState.type === "ad" ? "playAd" : "play";
@@ -274,6 +296,7 @@ module.exports = (server) => {
       playlistName: playlistState.name,
       playlistIndex: playlistState.currentIndex,
       playlistTotal: playlistState.songs.length,
+      mixerMode: radioState.mixerMode,
     });
   };
 

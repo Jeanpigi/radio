@@ -1,76 +1,109 @@
-/* Estilos de la pagina de inicio o login*/
+/* ── Login / Signup ── */
 .container__login {
-    display: grid;
-    justify-content: center;
-    justify-content: center;
-    align-items: center;
-    align-content: center;
-    justify-items: center;
-    margin-top: 5rem;
+  min-height: calc(100vh - 104px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: var(--bg);
 }
 
 .container__index {
-    height: 390px;
-    padding: 20px;
-    background-color: var(--background);
-    border-radius: 10px;
-    box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.3);
-    overflow: hidden;
-    display: grid;
-    grid-template-rows: 1fr 1fr;
-    justify-content: center;
-    align-items: center;
-    align-content: center;
-    align-self: center;
+  width: 100%;
+  max-width: 400px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 3.2rem 3.2rem 3.6rem;
+  border: 1px solid var(--border);
+}
+
+.login__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  background: var(--accent-soft);
+  border-radius: 50%;
+  margin: 0 auto 2rem;
+  color: var(--accent);
+  font-size: 2.4rem;
 }
 
 .titulo {
-    font-size: 28px;
-    color: var(--black);
-    margin-bottom: 20px;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-    text-align: center;
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.02em;
+}
+
+.login__subtitle {
+  font-size: 1.4rem;
+  color: var(--text-2);
+  text-align: center;
+  margin-bottom: 2.4rem;
 }
 
 .formulario__signup {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .formulario__input[type="text"],
 .formulario__input[type="password"] {
-    padding: 10px;
-    margin-bottom: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    width: 250px;
+  width: 100%;
+  padding: 1.1rem 1.4rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 1.5rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--bg);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.button__container {
-    display: grid;
-    justify-items: center;
-    align-items: center;
+.formulario__input:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.formulario__input::placeholder {
+  color: var(--text-3);
 }
 
 .button__link {
-    padding: 10px;
-    background-color: var(--button);
-    color: var(--white);
-    border: none;
-    border-radius: 18px;
-    margin: 10px;
-    cursor: pointer;
-    text-decoration: none;
-    width: 50%;
+  width: 100%;
+  padding: 1.2rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-xl);
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+  letter-spacing: 0.01em;
+  margin-top: 0.4rem;
+  box-shadow: 0 4px 16px rgba(255,59,92,0.3);
 }
 
 .button__link:hover {
-    background-color: var(--hoveButton);
+  background: var(--accent-hover);
+  box-shadow: 0 6px 24px rgba(255,59,92,0.4);
+  transform: translateY(-1px);
 }
 
-.register__button {
-    margin: 10px 0;
-    padding: 10px;
-    display: grid;
+.button__link:active {
+  transform: translateY(0);
 }
+
+/* ── Backward compat ── */
+.button__container { display: block; }
+.register__button { margin: 0; }
