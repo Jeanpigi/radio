@@ -2,6 +2,8 @@ const wsUrl = `ws://${window.location.host}`;
 const socket = new WebSocket(wsUrl);
 
 const elements = {
+  listenersCount: document.getElementById("listeners-count"),
+  listenersList: document.getElementById("listeners-list"),
   nowPlayingTitle: document.getElementById("now-playing-title"),
   btnPauseResume: document.getElementById("btn-pause-resume"),
   pauseResumeIcon: document.getElementById("pause-resume-icon"),
@@ -53,6 +55,9 @@ socket.addEventListener("message", (event) => {
       updateMixerUI(true);
       showHint("El mixer estaba al aire. Detecta los dispositivos y actívalo de nuevo.");
     }
+  } else if (data.type === "listenersList") {
+    elements.listenersCount.textContent = data.count;
+    renderListenersList(data.listeners);
   } else if (data.type === "radioState") {
     isPaused = data.paused;
     updatePauseResumeButton();
@@ -413,6 +418,39 @@ elements.mixerGainSlider.addEventListener("input", () => {
   elements.mixerGainValue.textContent = pct + "%";
   if (gainNode) gainNode.gain.value = pct / 100;
 });
+
+// ── Lista de oyentes ──────────────────────────────────────────────────────────
+
+const deviceIcons = {
+  "Móvil": "fa-mobile-alt",
+  "Windows": "fa-desktop",
+  "Mac": "fa-laptop",
+  "Linux": "fa-desktop",
+  "Otro": "fa-globe",
+  "Desconocido": "fa-question-circle",
+};
+
+const renderListenersList = (list) => {
+  if (!elements.listenersList) return;
+  if (!list || list.length === 0) {
+    elements.listenersList.innerHTML = '<p class="radio__empty">Sin oyentes conectados</p>';
+    return;
+  }
+  elements.listenersList.innerHTML = "";
+  list.forEach((l) => {
+    const icon = deviceIcons[l.device] || "fa-globe";
+    const time = new Date(l.connectedAt).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
+    const shortId = l.clientId.substring(0, 8);
+    const item = document.createElement("div");
+    item.className = "radio__listener-item";
+    item.innerHTML =
+      `<span class="radio__listener-device"><i class="fas ${icon}"></i> ${l.device}</span>` +
+      `<span class="radio__listener-ip">${l.ip}</span>` +
+      `<span class="radio__listener-id" title="${l.clientId}">${shortId}</span>` +
+      `<span class="radio__listener-time"><i class="fas fa-clock"></i> ${time}</span>`;
+    elements.listenersList.appendChild(item);
+  });
+};
 
 // ── Playlists ─────────────────────────────────────────────────────────────────
 

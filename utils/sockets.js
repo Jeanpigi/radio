@@ -14,7 +14,7 @@ const mixerStream = require("./mixerStream");
 module.exports = (server) => {
   const wss = new WebSocket.Server({ server });
 
-  const listeners = new Set();
+  const listeners = new Map();
   let adminWs = null;
 
   const recentlyPlayedSongs = [];
@@ -109,7 +109,47 @@ module.exports = (server) => {
     });
   }
 
-  wss.on("connection", (ws) => {
+  const getClientIp = (req) => {
+    const forwarded = req.headers["x-forwarded-for"];
+    if (forwarded) return forwarded.split(",")[0].trim();
+    return req.socket.remoteAddress || "desconocida";
+  };
+
+  const parseUserAgent = (ua) => {
+    if (!ua) return "Desconocido";
+    if (/Mobile|Android|iPhone|iPad/i.test(ua)) return "Móvil";
+    if (/Windows/i.test(ua)) return "Windows";
+    if (/Macintosh|Mac OS/i.test(ua)) return "Mac";
+    if (/Linux/i.test(ua)) return "Linux";
+    return "Otro";
+  };
+
+  const buildListenersList = () => {
+    const list = [];
+    for (const [, info] of listeners) {
+      list.push({
+        clientId: info.clientId,
+        ip: info.ip,
+        device: info.device,
+        connectedAt: info.connectedAt,
+      });
+    }
+    return list;
+  };
+
+  const notifyListenersUpdate = () => {
+    notifyAdmin({
+      type: "listenersList",
+      count: listeners.size,
+      listeners: buildListenersList(),
+    });
+  };
+
+  wss.on("connection", (ws, req) => {
+    const ip = getClientIp(req);
+    const userAgent = req.headers["user-agent"] || "";
+    const device = parseUserAgent(userAgent);
+
     ws.once("message", async (message) => {
       let data;
       try {
@@ -123,14 +163,24 @@ module.exports = (server) => {
         adminWs = ws;
         console.log("Admin conectado al WebSocket");
         syncAdminState(ws);
+        notifyListenersUpdate();
         handleAdminMessages(ws);
       } else if (data.type === "listenerConnect") {
-        listeners.add(ws);
-        console.log(`Listener conectado. Total: ${listeners.size}`);
+        const clientId = data.clientId || ip;
+        listeners.set(ws, {
+          clientId,
+          ip,
+          device,
+          userAgent,
+          connectedAt: new Date().toISOString(),
+        });
+        console.log(`Listener conectado (${clientId}). Total: ${listeners.size}`);
+        notifyListenersUpdate();
         syncListenerState(ws);
         ws.on("close", () => {
           listeners.delete(ws);
-          console.log(`Listener desconectado. Total: ${listeners.size}`);
+          console.log(`Listener desconectado (${clientId}). Total: ${listeners.size}`);
+          notifyListenersUpdate();
         });
       } else {
         ws.close();
@@ -238,7 +288,7 @@ module.exports = (server) => {
         notifyAdmin({ type: "mixerState", active: false });
         console.log("Modo mixer desactivado");
         setTimeout(() => {
-          listeners.forEach((client) => syncListenerState(client));
+          for (const [ws] of listeners) syncListenerState(ws);
         }, 600);
       }
     });
@@ -250,7 +300,7 @@ module.exports = (server) => {
         mixerStream.reset();
         broadcastToListeners({ type: "mixerStop" });
         setTimeout(() => {
-          listeners.forEach((client) => syncListenerState(client));
+          for (const [ws] of listeners) syncListenerState(ws);
         }, 600);
       }
       console.log("Admin desconectado");
@@ -302,11 +352,11 @@ module.exports = (server) => {
 
   const broadcastToListeners = (data) => {
     const msg = JSON.stringify(data);
-    listeners.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(msg);
+    for (const [ws] of listeners) {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(msg);
       }
-    });
+    }
   };
 
   const notifyAdmin = (data) => {

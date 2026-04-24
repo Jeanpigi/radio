@@ -3,16 +3,14 @@ const router = express.Router();
 
 const { signup, login } = require("../controllers/userController");
 const { updateSessionToken, getUserByUsername } = require("../model/userLite");
-// Middlewares
-const { verificarSesion } = require("../middleware/verificacion");
 const jwt = require("jsonwebtoken");
 
 // Ruta de registro y inicio de sesión de usuario
-router.get("/signup", verificarSesion, (req, res) => {
+router.get("/signup", (req, res) => {
   res.render("signup");
 });
 
-router.post("/signup", verificarSesion, signup);
+router.post("/signup", signup);
 
 router.get("/login", (req, res) => {
   res.render("login");

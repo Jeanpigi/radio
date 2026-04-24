@@ -18,7 +18,12 @@ let inMixerMode = false;
 // ── WebSocket ─────────────────────────────────────────────────────────────────
 
 socket.addEventListener("open", () => {
-  socket.send(JSON.stringify({ type: "listenerConnect" }));
+  let clientId = localStorage.getItem("radio_client_id");
+  if (!clientId) {
+    clientId = crypto.randomUUID();
+    localStorage.setItem("radio_client_id", clientId);
+  }
+  socket.send(JSON.stringify({ type: "listenerConnect", clientId }));
   statusText.textContent = "En vivo";
   hintText.textContent = "Presiona play para escuchar";
 });
