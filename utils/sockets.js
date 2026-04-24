@@ -38,27 +38,30 @@ module.exports = (server) => {
     mixerMode: false, // true cuando el mixer transmite directamente
   };
 
-  // Timer de seguridad para avanzar automáticamente cuando termina un anuncio
-  let adAutoAdvanceTimer = null;
+  let autoAdvanceTimer = null;
 
-  const clearAdTimer = () => {
-    if (adAutoAdvanceTimer) {
-      clearTimeout(adAutoAdvanceTimer);
-      adAutoAdvanceTimer = null;
+  const clearAutoAdvance = () => {
+    if (autoAdvanceTimer) {
+      clearTimeout(autoAdvanceTimer);
+      autoAdvanceTimer = null;
     }
   };
 
-  const setAdTimer = (adPath) => {
-    clearAdTimer();
-    const fullPath = nodePath.join(__dirname, "..", "public", adPath);
-    let durationMs = 180000;
+  const estimateDurationMs = (audioPath) => {
+    const fullPath = nodePath.join(__dirname, "..", "public", audioPath);
     try {
       const stats = fs.statSync(fullPath);
-      // Estimación ~128kbps CBR = 16KB/s + 8s de margen
-      durationMs = Math.ceil(stats.size / 16000) * 1000 + 8000;
-    } catch {}
-    adAutoAdvanceTimer = setTimeout(() => {
-      adAutoAdvanceTimer = null;
+      return Math.ceil(stats.size / 16000) * 1000 + 8000;
+    } catch {
+      return 300000;
+    }
+  };
+
+  const scheduleAutoAdvance = (audioPath) => {
+    clearAutoAdvance();
+    const durationMs = estimateDurationMs(audioPath);
+    autoAdvanceTimer = setTimeout(() => {
+      autoAdvanceTimer = null;
       advanceToNextSong();
     }, durationMs);
   };
@@ -99,14 +102,14 @@ module.exports = (server) => {
     }
   };
 
-  const horasHimno = ["0 6 * * *", "0 12 * * *", "0 18 * * *", "0 0 * * *"];
+  const horasHimno = ["0 6 * * *", "0 12 * * *", "0 18 * * *"];
   for (const hora of horasHimno) {
     cron.schedule(hora, () => {
       const himnoPath = "himno/HimnoNacional.mp3";
       setRadioState(himnoPath, "himno");
       broadcastToListeners({ type: "himno", path: himnoPath, currentTime: 0 });
       notifyAdmin({ type: "nowPlaying", path: himnoPath, kind: "himno" });
-    });
+    }, { timezone: "America/Bogota" });
   }
 
   const getClientIp = (req) => {
@@ -237,6 +240,7 @@ module.exports = (server) => {
         if (!radioState.paused && radioState.path) {
           radioState.paused = true;
           radioState.pausedAt = Date.now();
+          clearAutoAdvance();
           broadcastToListeners({ type: "pause" });
           notifyAdmin({ type: "radioState", paused: true });
         }
@@ -247,6 +251,14 @@ module.exports = (server) => {
           radioState.paused = false;
           radioState.pausedAt = null;
           const currentTime = getElapsed();
+          const remainingMs = estimateDurationMs(radioState.path) - (currentTime * 1000);
+          if (remainingMs > 0) {
+            clearAutoAdvance();
+            autoAdvanceTimer = setTimeout(() => {
+              autoAdvanceTimer = null;
+              advanceToNextSong();
+            }, remainingMs);
+          }
           broadcastToListeners({ type: "play", path: radioState.path, currentTime });
           notifyAdmin({ type: "radioState", paused: false });
         }
@@ -261,7 +273,6 @@ module.exports = (server) => {
             setRadioState(adPath, "ad");
             broadcastToListeners({ type: "playAd", path: adPath, currentTime: 0 });
             notifyAdmin({ type: "nowPlaying", path: adPath, kind: "ad" });
-            setAdTimer(adPath);
           }
         } catch (err) {
           console.error("Error al obtener anuncio:", err);
@@ -271,13 +282,13 @@ module.exports = (server) => {
         setRadioState(adPath, "ad");
         broadcastToListeners({ type: "playAd", path: adPath, currentTime: 0 });
         notifyAdmin({ type: "nowPlaying", path: adPath, kind: "ad" });
-        setAdTimer(adPath);
       } else if (data.type === "adminVolume") {
         const vol = Math.min(1, Math.max(0, Number(data.value) || 0));
         radioState.volume = vol;
         broadcastToListeners({ type: "setVolume", value: vol });
       } else if (data.type === "adminMixerStart") {
         radioState.mixerMode = true;
+        clearAutoAdvance();
         broadcastToListeners({ type: "mixerStart" });
         notifyAdmin({ type: "mixerState", active: true });
         console.log("Modo mixer activado");
@@ -308,12 +319,15 @@ module.exports = (server) => {
   };
 
   const setRadioState = (path, type) => {
-    clearAdTimer();
+    clearAutoAdvance();
     radioState.path = path;
     radioState.type = type;
     radioState.startedAt = Date.now();
     radioState.paused = false;
     radioState.pausedAt = null;
+    if (!radioState.mixerMode) {
+      scheduleAutoAdvance(path);
+    }
   };
 
   const getElapsed = () => {

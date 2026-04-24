@@ -57,13 +57,7 @@ socket.addEventListener("message", (event) => {
     audio.src = "/stream/mixer";
     audio.volume = baseVolume;
     hintText.textContent = "Conectando al mixer...";
-    audio.play().then(() => {
-      setPlaying(true);
-    }).catch((err) => {
-      console.warn("Mixer play failed:", err.message);
-      setPlaying(false);
-      hintText.textContent = "Presiona play para escuchar en vivo";
-    });
+    tryPlay();
 
   } else if (data.type === "mixerStop") {
     inMixerMode = false;
@@ -81,11 +75,19 @@ socket.addEventListener("message", (event) => {
 
 // ── Reproducción de archivos (modo normal) ────────────────────────────────────
 
+const tryPlay = () => {
+  audio.play().then(() => {
+    setPlaying(true);
+  }).catch(() => {
+    setPlaying(false);
+    hintText.textContent = "Presiona play para continuar escuchando";
+  });
+};
+
 const loadTrack = (path, currentTime) => {
   currentPath = path;
   const filename = path.split(/[\\/]/).pop().replace(/\.[^.]+$/, "");
   songName.textContent = filename;
-  hintText.textContent = "Presiona play para escuchar";
 
   audio.src = "/" + path;
   audio.load();
@@ -93,7 +95,11 @@ const loadTrack = (path, currentTime) => {
   audio.volume = baseVolume;
   btnPlay.disabled = false;
 
-  if (isPlaying) audio.play().catch(() => {});
+  if (isPlaying) {
+    tryPlay();
+  } else {
+    hintText.textContent = "Presiona play para escuchar";
+  }
 };
 
 btnPlay.addEventListener("click", () => {
@@ -102,13 +108,11 @@ btnPlay.addEventListener("click", () => {
     setPlaying(false);
     return;
   }
-  setPlaying(true);
-  audio.play().catch(() => {});
+  tryPlay();
 });
 
 audio.addEventListener("ended", () => {
   if (!inMixerMode) {
-    setPlaying(false);
     hintText.textContent = "Esperando siguiente canción...";
   }
 });
