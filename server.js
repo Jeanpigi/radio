@@ -45,27 +45,15 @@ app.set("view engine", ".hbs");
 // Middleware para procesar datos del formulario
 app.use(express.urlencoded({ extended: true }));
 
-// Configuración para archivos estáticos (con manejo de caché)
-app.use(
-  express.static(path.join(__dirname, "public"), {
-    // maxAge: "1d", // Establece un tiempo de vida de caché de 1 día para archivos estáticos
-    maxAge: 600000, // Establece un tiempo de vida de caché de 10 minutos
-  })
-);
+// Archivos de media — cachear 10 minutos (son pesados y no cambian seguido)
+const mediaCache = { maxAge: 600000 };
+app.use("/music", express.static(path.join(__dirname, "public/music"), mediaCache));
+app.use("/audios", express.static(path.join(__dirname, "public/audios"), mediaCache));
+app.use("/himno", express.static(path.join(__dirname, "public/himno"), mediaCache));
+app.use("/assets", express.static(path.join(__dirname, "public/assets"), mediaCache));
 
-app.use("/js", express.static("public/js"));
-app.use("/css", express.static("public/css"));
-app.use("/music", express.static("public/music"));
-app.use("/audios", express.static("public/audios"));
-app.use("/himno", express.static("public/himno"));
-app.use("/assets", express.static("public/assets"));
-
-// Manejo de cache
-app.use((req, res, next) => {
-  // Configuración de cabeceras de caché
-  res.set("Cache-Control", "no-store");
-  next();
-});
+// JS, CSS y demás estáticos — sin caché para que siempre tome los cambios
+app.use(express.static(path.join(__dirname, "public"), { maxAge: 0 }));
 
 // Rutas
 app.use("/", playlistRoutes);
