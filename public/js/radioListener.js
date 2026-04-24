@@ -20,7 +20,9 @@ let inMixerMode = false;
 socket.addEventListener("open", () => {
   let clientId = localStorage.getItem("radio_client_id");
   if (!clientId) {
-    clientId = crypto.randomUUID();
+    const arr = new Uint8Array(16);
+    (window.crypto || window.msCrypto).getRandomValues(arr);
+    clientId = Array.from(arr, (b) => b.toString(16).padStart(2, "0")).join("");
     localStorage.setItem("radio_client_id", clientId);
   }
   socket.send(JSON.stringify({ type: "listenerConnect", clientId }));
