@@ -12,7 +12,12 @@ const getRadioPanel = async (req, res) => {
       ...a,
       path: decodeURIComponent(a.filepath).replace("public/", ""),
     }));
-    res.render("radio", { canciones: cancionesConPath, anuncios: anunciosConPath });
+    res.render("radio", {
+      canciones: cancionesConPath,
+      anuncios: anunciosConPath,
+      isAdmin: !!req.user.isAdmin,
+      username: req.user.username,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).send("Error del servidor");

@@ -17,6 +17,7 @@ const playerRoutes = require("./routes/playerRoutes");
 const errorRoutes = require("./routes/errorRoutes");
 const playlistRoutes = require("./routes/playlistRoutes");
 const radioRoutes = require("./routes/radioRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 const app = express();
 const server = http.createServer(app);
@@ -56,6 +57,7 @@ app.use("/assets", express.static(path.join(__dirname, "public/assets"), mediaCa
 app.use(express.static(path.join(__dirname, "public"), { maxAge: 0 }));
 
 // Rutas
+app.use("/", adminRoutes);
 app.use("/", playlistRoutes);
 app.use("/", radioRoutes);
 app.use("/", homeRoutes);

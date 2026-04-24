@@ -17,6 +17,11 @@
       <a href="/radio" class="dash__radio-link">
         <i class="fas fa-broadcast-tower"></i> Panel de Radio
       </a>
+      {{#if isAdmin}}
+      <a href="/admin/users" class="dash__radio-link">
+        <i class="fas fa-users-cog"></i> Usuarios
+      </a>
+      {{/if}}
     </div>
     <form action="/logout" method="GET" style="margin:0">
       <button class="dash__logout-btn" type="submit">

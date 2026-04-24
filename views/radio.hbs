@@ -3,12 +3,29 @@
 <div class="radio__container">
 
   <div class="radio__topbar">
-    <a href="/canciones" class="radio__back-link">
-      <i class="fas fa-arrow-left"></i> Dashboard
-    </a>
-    <a href="/player" class="radio__back-link" style="margin-left:1.5rem">
-      <i class="fas fa-list"></i> Playlists
-    </a>
+    <div class="radio__topbar-links">
+      <a href="/canciones" class="radio__back-link">
+        <i class="fas fa-arrow-left"></i> Dashboard
+      </a>
+      <a href="/player" class="radio__back-link">
+        <i class="fas fa-list"></i> Playlists
+      </a>
+      {{#if isAdmin}}
+      <a href="/admin/users" class="radio__back-link">
+        <i class="fas fa-users-cog"></i> Usuarios
+      </a>
+      {{/if}}
+    </div>
+    <form action="/logout" method="GET" style="margin:0">
+      <button class="radio__logout-btn" type="submit">
+        <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+      </button>
+    </form>
+  </div>
+
+  <div id="dj-locked-banner" class="radio__dj-locked" style="display:none">
+    <i class="fas fa-lock"></i>
+    <span id="dj-locked-text">Otro usuario está controlando la radio</span>
   </div>
 
   <div class="radio__panel">
@@ -96,13 +113,14 @@
   </div>
 
   <div class="radio__listeners-panel">
-    <h2 class="radio__songs-title">
+    <h2 class="radio__songs-title radio__listeners-toggle" id="listeners-toggle">
       <i class="fas fa-users"></i> Oyentes conectados
       <span id="listeners-badge" class="radio__listeners-badge">
         <i class="fas fa-headphones"></i> <span id="listeners-count">0</span>
       </span>
+      <i class="fas fa-chevron-down radio__toggle-icon" id="listeners-toggle-icon"></i>
     </h2>
-    <div class="radio__listeners-list" id="listeners-list">
+    <div class="radio__listeners-list radio__listeners-list--collapsed" id="listeners-list">
       <p class="radio__empty">Sin oyentes conectados</p>
     </div>
   </div>

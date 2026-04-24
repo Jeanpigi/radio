@@ -18,7 +18,17 @@ function loadAvailableSongs() {
     canciones.forEach((cancion, index) => {
       const songElement = document.createElement("li");
       songElement.textContent = cancion.filename;
+      songElement.draggable = true;
+      songElement.dataset.index = index;
       songElement.onclick = () => addToPlaylist(index);
+      songElement.addEventListener("dragstart", (e) => {
+        e.dataTransfer.setData("text/plain", index);
+        e.dataTransfer.effectAllowed = "copy";
+        songElement.classList.add("pl__dragging");
+      });
+      songElement.addEventListener("dragend", () => {
+        songElement.classList.remove("pl__dragging");
+      });
       availableSongsContainer.appendChild(songElement);
     });
   }
@@ -64,12 +74,14 @@ function showPlaylistModal() {
       <div class="container__list-player">
         <div>
           <h3>Canciones disponibles</h3>
+          <input type="text" id="songs-filter" class="pl__search-input" placeholder="Buscar canción...">
           <ul id="available-songs"></ul>
         </div>
         <div>
           <h3>Mi Playlist</h3>
           <input type="text" id="playlist-name" placeholder="Nombre de la playlist">
-          <ul id="playlist"></ul>
+          <ul id="playlist" class="pl__drop-zone"></ul>
+          <p class="pl__drop-hint"><i class="fas fa-hand-pointer"></i> Haz clic o arrastra canciones aquí</p>
         </div>
       </div>
     `,
@@ -97,6 +109,34 @@ function showPlaylistModal() {
     didOpen: () => {
       loadAvailableSongs();
       updatePlaylist();
+
+      const filterInput = document.getElementById("songs-filter");
+      if (filterInput) {
+        filterInput.addEventListener("input", () => {
+          const q = filterInput.value.toLowerCase().trim();
+          document.querySelectorAll("#available-songs li").forEach((item) => {
+            item.style.display = item.textContent.toLowerCase().includes(q) ? "" : "none";
+          });
+        });
+      }
+
+      const dropZone = document.getElementById("playlist");
+      if (dropZone) {
+        dropZone.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "copy";
+          dropZone.classList.add("pl__drop-zone--active");
+        });
+        dropZone.addEventListener("dragleave", () => {
+          dropZone.classList.remove("pl__drop-zone--active");
+        });
+        dropZone.addEventListener("drop", (e) => {
+          e.preventDefault();
+          dropZone.classList.remove("pl__drop-zone--active");
+          const index = Number(e.dataTransfer.getData("text/plain"));
+          if (!isNaN(index)) addToPlaylist(index);
+        });
+      }
     },
   }).then((result) => {
     if (result.isConfirmed) {

@@ -82,7 +82,21 @@ socket.addEventListener("open", () => {
 
 socket.addEventListener("message", (event) => {
   const data = JSON.parse(event.data);
-  if (data.type === "nowPlaying") {
+  if (data.type === "djLocked") {
+    const banner = document.getElementById("dj-locked-banner");
+    const text = document.getElementById("dj-locked-text");
+    if (banner) banner.style.display = "flex";
+    if (text) text.textContent = `${data.dj} está controlando la radio en este momento`;
+    elements.btnPauseResume.disabled = true;
+    elements.btnNext.disabled = true;
+    elements.btnAd.disabled = true;
+    if (elements.btnToggleMixer) elements.btnToggleMixer.disabled = true;
+    if (elements.btnDetect) elements.btnDetect.disabled = true;
+    if (elements.volumeSlider) elements.volumeSlider.disabled = true;
+    document.querySelectorAll(".btn-play-song, .btn-play-ad, .btn-play-playlist").forEach((b) => {
+      b.disabled = true;
+    });
+  } else if (data.type === "nowPlaying") {
     updateNowPlaying(data);
     if (data.mixerMode && !mixerMode) {
       updateMixerUI(true);
@@ -520,3 +534,18 @@ const renderPlaylists = (playlists) => {
 };
 
 loadPlaylists();
+
+// ── Toggle oyentes (colapsar/expandir) ──────────────���────────────────────────
+
+const listenersToggle = document.getElementById("listeners-toggle");
+const toggleIcon = document.getElementById("listeners-toggle-icon");
+
+if (listenersToggle) {
+  listenersToggle.addEventListener("click", () => {
+    elements.listenersList.classList.toggle("radio__listeners-list--collapsed");
+    if (toggleIcon) {
+      toggleIcon.classList.toggle("fa-chevron-down");
+      toggleIcon.classList.toggle("fa-chevron-up");
+    }
+  });
+}

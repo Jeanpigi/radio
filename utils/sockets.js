@@ -2,6 +2,7 @@ const WebSocket = require("ws");
 const cron = require("node-cron");
 const fs = require("fs");
 const nodePath = require("path");
+const jwt = require("jsonwebtoken");
 const { getAllSongs } = require("../model/songLite");
 const { getAllAds } = require("../model/adLite");
 const { getAllPlaylists } = require("../model/playlistLite");
@@ -16,6 +17,7 @@ module.exports = (server) => {
 
   const listeners = new Map();
   let adminWs = null;
+  let djUsername = null;
 
   const recentlyPlayedSongs = [];
   const recentlyPlayedAds = [];
@@ -148,6 +150,17 @@ module.exports = (server) => {
     });
   };
 
+  const parseUserFromCookie = (req) => {
+    const cookieString = req.headers.cookie || "";
+    const tokenMatch = cookieString.match(/token=([^;]+)/);
+    if (!tokenMatch) return null;
+    try {
+      return jwt.verify(tokenMatch[1], process.env.JWT_SECRET);
+    } catch {
+      return null;
+    }
+  };
+
   wss.on("connection", (ws, req) => {
     const ip = getClientIp(req);
     const userAgent = req.headers["user-agent"] || "";
@@ -163,8 +176,18 @@ module.exports = (server) => {
       }
 
       if (data.type === "adminConnect") {
+        const userInfo = parseUserFromCookie(req);
+        const username = userInfo ? userInfo.username : "desconocido";
+
+        if (adminWs && adminWs.readyState === WebSocket.OPEN && djUsername !== username) {
+          send(ws, { type: "djLocked", dj: djUsername });
+          ws.on("close", () => {});
+          return;
+        }
+
         adminWs = ws;
-        console.log("Admin conectado al WebSocket");
+        djUsername = username;
+        console.log(`Admin conectado: ${djUsername}`);
         syncAdminState(ws);
         notifyListenersUpdate();
         handleAdminMessages(ws);
@@ -305,7 +328,9 @@ module.exports = (server) => {
     });
 
     ws.on("close", () => {
+      const disconnectedDj = djUsername;
       adminWs = null;
+      djUsername = null;
       if (radioState.mixerMode) {
         radioState.mixerMode = false;
         mixerStream.reset();
@@ -314,7 +339,7 @@ module.exports = (server) => {
           for (const [ws] of listeners) syncListenerState(ws);
         }, 600);
       }
-      console.log("Admin desconectado");
+      console.log(`Admin desconectado: ${disconnectedDj}`);
     });
   };
 

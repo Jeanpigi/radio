@@ -96,6 +96,24 @@ const getSessionTokenByUsername = async (username) => {
   });
 };
 
+const getAllUsers = async () => {
+  return new Promise((resolve, reject) => {
+    db.all(
+      "SELECT id, username, is_admin FROM users ORDER BY id",
+      (err, rows) => (err ? reject(err) : resolve(rows || []))
+    );
+  });
+};
+
+const deleteUserById = async (id) => {
+  return new Promise((resolve, reject) => {
+    db.run("DELETE FROM users WHERE id = ?", [id], function (err) {
+      if (err) reject(err);
+      else resolve(this.changes);
+    });
+  });
+};
+
 module.exports = {
   checkIfUsernameExists,
   createUser,
@@ -103,4 +121,6 @@ module.exports = {
   comparePasswords,
   updateSessionToken,
   getSessionTokenByUsername,
+  getAllUsers,
+  deleteUserById,
 };

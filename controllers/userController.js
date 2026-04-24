@@ -54,7 +54,7 @@ const login = async (req, res) => {
     await updateSessionToken(user[0].id, sessionToken);
 
     const token = jwt.sign(
-      { username: username, sessionToken },
+      { username, sessionToken, isAdmin: user[0].is_admin === 1 },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );

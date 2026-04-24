@@ -1,0 +1,36 @@
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.27/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="/css/admin.css">
+
+<div class="adm">
+  <div class="adm__topbar">
+    <div class="adm__topbar-links">
+      <a href="/canciones" class="adm__link">
+        <i class="fas fa-th-large"></i> Dashboard
+      </a>
+      <a href="/radio" class="adm__link adm__link--radio">
+        <i class="fas fa-broadcast-tower"></i> Panel de Radio
+      </a>
+      <a href="/player" class="adm__link">
+        <i class="fas fa-list"></i> Playlists
+      </a>
+    </div>
+    <form action="/logout" method="GET" style="margin:0">
+      <button class="adm__logout-btn" type="submit">
+        <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+      </button>
+    </form>
+  </div>
+
+  <div class="adm__card">
+    <div class="adm__header">
+      <h1 class="adm__title"><i class="fas fa-users-cog"></i> Gestión de Usuarios</h1>
+      <span class="adm__count" id="users-count">0 usuarios</span>
+    </div>
+    <div class="adm__list" id="users-list">
+      <p class="adm__empty">Cargando usuarios...</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.27/dist/sweetalert2.all.min.js"></script>
+<script defer src="/js/adminUsers.js"></script>

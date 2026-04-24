@@ -12,6 +12,13 @@
 .radio__topbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.radio__topbar-links {
+  display: flex;
   gap: 0.6rem;
   flex-wrap: wrap;
 }
@@ -35,6 +42,45 @@
   border-color: var(--accent);
   color: var(--accent) !important;
   background: var(--accent-soft);
+}
+
+.radio__logout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: 1.5px solid var(--border);
+  color: var(--text-2);
+  padding: 0.65rem 1.4rem;
+  border-radius: var(--radius-xl);
+  font-size: 1.35rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.radio__logout-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ── DJ Locked banner ── */
+.radio__dj-locked {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  background: rgba(255,149,0,0.1);
+  color: #FF9500;
+  border: 1.5px solid rgba(255,149,0,0.35);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.4rem;
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.radio__dj-locked i {
+  font-size: 1.4rem;
 }
 
 /* ── Main panel card ── */
@@ -575,6 +621,23 @@
   gap: 0.5rem;
 }
 
+.radio__listeners-toggle {
+  cursor: pointer;
+  user-select: none;
+  padding-bottom: 1rem;
+  transition: background 0.15s;
+}
+
+.radio__listeners-toggle:hover {
+  background: var(--bg);
+}
+
+.radio__toggle-icon {
+  font-size: 1.1rem;
+  color: var(--text-3);
+  transition: transform 0.3s;
+}
+
 .radio__listeners-badge {
   display: inline-flex;
   align-items: center;
@@ -599,6 +662,15 @@
   padding: 0.6rem 0.8rem 1rem;
   overflow-y: auto;
   max-height: 300px;
+  transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
+}
+
+.radio__listeners-list--collapsed {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  opacity: 0;
+  overflow: hidden;
 }
 
 .radio__listeners-list::-webkit-scrollbar { width: 4px; }
