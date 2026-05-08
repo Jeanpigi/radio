@@ -12,7 +12,7 @@ const {
 } = require("./getAudio");
 const mixerStream = require("./mixerStream");
 
-module.exports = (server) => {
+const socketHandler = (server) => {
   const wss = new WebSocket.Server({ server });
 
   const listeners = new Map();
@@ -409,4 +409,11 @@ module.exports = (server) => {
       ws.send(JSON.stringify(data));
     }
   };
+
+  socketHandler.getListenersInfo = () => ({
+    count: listeners.size,
+    listeners: buildListenersList(),
+  });
 };
+
+module.exports = socketHandler;

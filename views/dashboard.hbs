@@ -109,8 +109,48 @@
     </div>
 
   </div>
+
+  <div class="dash__bottom-grid">
+
+    <div class="dash__card">
+      <div class="dash__card-header">
+        <h2><i class="fas fa-list"></i> Playlists <span class="dash__count">{{playlists.length}}</span></h2>
+      </div>
+      <div class="dash__list" id="playlists-content">
+        {{#if playlists.length}}
+        {{#each playlists}}
+        <div class="dash__item">
+          <span class="dash__item-name"><i class="fas fa-play-circle" style="color:var(--accent);margin-right:0.4rem"></i> {{this.name}}</span>
+          <span class="dash__playlist-count">{{this.songs.length}} canciones</span>
+        </div>
+        {{/each}}
+        {{else}}
+        <div class="dash__item">
+          <span class="dash__item-name" style="color:var(--text-3)">No hay playlists. <a href="/player">Crea una.</a></span>
+        </div>
+        {{/if}}
+      </div>
+    </div>
+
+    <div class="dash__card">
+      <div class="dash__card-header">
+        <h2>
+          <i class="fas fa-users"></i> Oyentes conectados
+          <span class="dash__count" id="dash-listeners-count">0</span>
+        </h2>
+      </div>
+      <div class="dash__list" id="dash-listeners-list">
+        <div class="dash__item">
+          <span class="dash__item-name" style="color:var(--text-3)">Cargando...</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
 </div>
 
 <script defer src="/js/loadFile.js"></script>
 <script defer src="/js/confirmDelete.js"></script>
+<script defer src="/js/dashboardLive.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.27/dist/sweetalert2.all.min.js"></script>

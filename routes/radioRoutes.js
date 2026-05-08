@@ -6,6 +6,15 @@ const mixerStream = require("../utils/mixerStream");
 
 router.get("/radio", verificarSesion, getRadioPanel);
 
+router.get("/api/listeners", verificarSesion, (req, res) => {
+  const socketHandler = require("../utils/sockets");
+  if (socketHandler.getListenersInfo) {
+    res.json(socketHandler.getListenersInfo());
+  } else {
+    res.json({ count: 0, listeners: [] });
+  }
+});
+
 // Stream de audio en vivo del mixer — público, sin auth
 router.get("/stream/mixer", (req, res) => {
   req.socket.setNoDelay(true);

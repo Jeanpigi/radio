@@ -302,6 +302,64 @@
   color: var(--text-2);
 }
 
+/* ── Playlist count badge ── */
+.dash__playlist-count {
+  font-size: 1.15rem;
+  color: var(--text-3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Bottom grid (playlists + listeners) ── */
+.dash__bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.6rem;
+  margin-top: 1.6rem;
+}
+
+/* ── Listener items ── */
+.dash__listener-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 0.8rem;
+  align-items: center;
+  font-size: 1.2rem;
+}
+
+.dash__listener-device {
+  color: var(--text);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.dash__listener-device i {
+  color: var(--accent);
+  margin-right: 0.3rem;
+}
+
+.dash__listener-ip {
+  color: var(--text-2);
+  font-family: monospace;
+  font-size: 1.1rem;
+}
+
+.dash__listener-id {
+  color: var(--text-3);
+  font-family: monospace;
+  font-size: 1.05rem;
+}
+
+.dash__listener-time {
+  color: var(--text-3);
+  font-size: 1.05rem;
+  white-space: nowrap;
+}
+
+.dash__listener-time i {
+  margin-right: 0.2rem;
+}
+
 /* ── Compat ── */
 .delete-form { display: block; margin: 0; }
 .custom-select { margin-bottom: 0; }
@@ -322,4 +380,7 @@
   .dash { padding: 1.2rem; }
   .dash__grid { grid-template-columns: 1fr; }
   .dash__card--upload { grid-column: 1; }
+  .dash__bottom-grid { grid-template-columns: 1fr; }
+  .dash__listener-item { grid-template-columns: auto 1fr auto; }
+  .dash__listener-id { display: none; }
 }

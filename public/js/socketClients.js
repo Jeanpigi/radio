@@ -21,17 +21,22 @@ let inMixerMode = false;
 let talkAudio = null;
 
 const wsUrl = `ws://${window.location.host}`;
-const socket = new WebSocket(wsUrl);
+let socket;
+let reconnectDelay = 1000;
 
 const init = () => {
   elements.range.disabled = true;
+  elements.audioPlayer.preload = "auto";
+  connectWebSocket();
   bindEvents();
 };
 
-const bindEvents = () => {
+const connectWebSocket = () => {
+  socket = new WebSocket(wsUrl);
+
   socket.addEventListener("open", () => {
+    reconnectDelay = 1000;
     socket.send(JSON.stringify({ type: "listenerConnect" }));
-    console.log("Conectado a la radio");
   });
 
   socket.addEventListener("message", (event) => {
@@ -62,7 +67,10 @@ const bindEvents = () => {
   });
 
   socket.addEventListener("close", () => {
-    console.log("Desconectado de la radio");
+    setTimeout(() => {
+      reconnectDelay = Math.min(reconnectDelay * 2, 30000);
+      connectWebSocket();
+    }, reconnectDelay);
   });
 
   // Control local: silenciar/escuchar sin afectar la radio global
@@ -81,7 +89,12 @@ const bindEvents = () => {
   elements.audioPlayer.addEventListener("loadedmetadata", updateProgress);
   elements.audioPlayer.addEventListener("timeupdate", debounce(updateProgress, 100));
   elements.audioPlayer.addEventListener("error", () => {
-    console.error("Error reproduciendo audio");
+    if (settings.currentPath && !inMixerMode) {
+      setTimeout(() => {
+        elements.audioPlayer.src = settings.currentPath;
+        elements.audioPlayer.load();
+      }, 3000);
+    }
   });
 };
 
@@ -89,15 +102,21 @@ const handlePlay = (path, currentTime) => {
   if (!path) return;
   settings.currentPath = path;
   elements.audioPlayer.src = path;
+
+  const onCanPlay = () => {
+    elements.audioPlayer.removeEventListener("canplay", onCanPlay);
+    if (currentTime > 1) elements.audioPlayer.currentTime = currentTime;
+    elements.audioPlayer.play().catch(() => {});
+    changeSongTitle(path);
+    updateControls();
+    if (!settings.isRotating) {
+      rotateImage();
+      settings.isRotating = true;
+    }
+  };
+
+  elements.audioPlayer.addEventListener("canplay", onCanPlay);
   elements.audioPlayer.load();
-  elements.audioPlayer.currentTime = currentTime;
-  elements.audioPlayer.play();
-  changeSongTitle(path);
-  updateControls();
-  if (!settings.isRotating) {
-    rotateImage();
-    settings.isRotating = true;
-  }
 };
 
 const handleRadioPause = () => {
