@@ -2,7 +2,6 @@ const elements = {
   fileTypeSelect: document.getElementById("fileTypeSelect"),
   filePathInput: document.getElementById("filePath"),
   uploadForm: document.getElementById("uploadForm"),
-  uploadLabel: document.querySelector(".upload-label"),
   uploadButton: document.getElementById("uploadButton"),
   diaContainer: document.getElementById("diaContainer"),
   diaSelected: document.getElementById("dia"),
@@ -40,23 +39,14 @@ const changeFormAction = (selectedOption) => {
 
   // Verifica si selectedOption existe en el objeto actions
   if (actions[selectedOption]) {
-    const { action, name, label, placeholder } = actions[selectedOption];
+    const { action, name, placeholder } = actions[selectedOption];
 
     uploadForm.action = action;
     filePathInput.name = name;
-    uploadLabel.textContent = label;
     filePathInput.placeholder = placeholder;
-    // Si se selecciona "Anuncio," puedes obtener el valor de la selección de día
-    if (selectedOption === "anuncio") {
-      let selectedDia = elements.diaSelected.value;
-      console.log(selectedDia);
-    }
   } else {
-    // Maneja el caso en el que selectedOption no existe en actions
-    console.error(`Opción desconocida: ${selectedOption}`);
     uploadForm.action = "";
     filePathInput.name = "";
-    uploadLabel.textContent = "";
     filePathInput.placeholder = "";
   }
 

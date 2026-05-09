@@ -33,33 +33,38 @@ const insertAudios = async (req, res) => {
   try {
     const files = req.files;
     const { dia } = req.body;
-    const insertedAudios = [];
+    const inserted = [];
+    const duplicates = [];
 
-    for (let file of files) {
-      const { filename, path } = file;
-      const filepathNormalized = path.replace(/\\/g, "/");
+    for (const file of files) {
+      const { filename, path: filepath } = file;
+      const filepathNormalized = filepath.replace(/\\/g, "/");
 
       if (await checkIfFileAdExists(filename)) {
-        return res.send(`El anuncio '${filename}' ya existe`);
+        duplicates.push(filename);
+        fs.unlink(filepath, () => {});
+        continue;
       }
 
       await createAd(filename, filepathNormalized, dia);
-
-      insertedAudios.push(filename);
+      inserted.push(filename);
     }
 
-    const resultMessage =
-      insertedAudios.length > 0
-        ? `Se completó la carga de los audios: ${insertedAudios}`
-        : "No se insertaron nuevos audios";
-    console.log(resultMessage);
+    const params = new URLSearchParams();
+    if (inserted.length > 0) {
+      params.set("success", `${inserted.length} anuncio(s) subido(s) correctamente`);
+    }
+    if (duplicates.length > 0) {
+      params.set("warning", `${duplicates.length} anuncio(s) ya existía(n): ${duplicates.join(", ")}`);
+    }
+    if (inserted.length === 0 && duplicates.length === 0) {
+      params.set("error", "No se pudieron insertar los anuncios");
+    }
 
-    res.redirect("/canciones");
+    res.redirect("/canciones?" + params.toString());
   } catch (error) {
-    console.error(
-      `Ocurrió un error al momento de insertar en la base de datos ${error}`
-    );
-    res.redirect("/canciones");
+    console.error(`Error al insertar en la base de datos: ${error}`);
+    res.redirect("/canciones?error=" + encodeURIComponent("Error al guardar los anuncios en la base de datos"));
   }
 };
 

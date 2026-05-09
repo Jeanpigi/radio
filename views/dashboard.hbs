@@ -150,7 +150,31 @@
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.27/dist/sweetalert2.all.min.js"></script>
 <script defer src="/js/loadFile.js"></script>
 <script defer src="/js/confirmDelete.js"></script>
 <script defer src="/js/dashboardLive.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.27/dist/sweetalert2.all.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  var params = new URLSearchParams(window.location.search);
+  var error = params.get("error");
+  var warning = params.get("warning");
+  var success = params.get("success");
+
+  if (error && warning) {
+    Swal.fire({ icon: "error", title: "Error", text: error + ". " + warning });
+  } else if (error) {
+    Swal.fire({ icon: "error", title: "Error", text: error });
+  } else if (warning && success) {
+    Swal.fire({ icon: "warning", title: success, text: warning });
+  } else if (warning) {
+    Swal.fire({ icon: "warning", title: "Atención", text: warning });
+  } else if (success) {
+    Swal.fire({ icon: "success", title: "Listo", text: success, timer: 3000, showConfirmButton: false });
+  }
+
+  if (error || warning || success) {
+    window.history.replaceState({}, "", "/canciones");
+  }
+});
+</script>

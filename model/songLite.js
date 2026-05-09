@@ -77,11 +77,14 @@ const removeSong = async (id) => {
     }
     await new Promise((resolve, reject) => {
       db.run("DELETE FROM canciones WHERE id = ?", [id], (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+    await new Promise((resolve, reject) => {
+      db.run("DELETE FROM playlist_songs WHERE song_id = ?", [id], (err) => {
+        if (err) reject(err);
+        else resolve();
       });
     });
     return songExist;

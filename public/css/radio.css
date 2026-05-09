@@ -577,6 +577,14 @@
   border-color: var(--accent) !important;
 }
 
+.radio__playlist-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  width: 100%;
+}
+
 .radio__playlist-actions {
   display: flex;
   gap: 0.4rem;
@@ -588,6 +596,33 @@
   flex-direction: column;
   gap: 0.15rem;
   overflow: hidden;
+  cursor: pointer;
+}
+
+.radio__playlist-songs {
+  padding: 0.4rem 0 0.4rem 0.6rem;
+  border-top: 1px solid var(--border);
+  margin-top: 0.5rem;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.radio__playlist-songs::-webkit-scrollbar { width: 4px; }
+.radio__playlist-songs::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+.radio__playlist-song {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 1.15rem;
+  gap: 0.4rem;
+  transition: background 0.12s;
+}
+
+.radio__playlist-song:hover {
+  background: var(--bg);
 }
 
 .radio__playlist-name {

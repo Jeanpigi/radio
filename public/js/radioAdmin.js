@@ -1,5 +1,7 @@
-const wsUrl = `ws://${window.location.host}`;
-const socket = new WebSocket(wsUrl);
+const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+const wsUrl = `${wsProtocol}://${window.location.host}`;
+let socket = null;
+let reconnectAttempts = 0;
 
 const elements = {
   listenersCount: document.getElementById("listeners-count"),
@@ -39,7 +41,13 @@ let mixerStream = null;
 let audioCtx   = null;
 let gainNode   = null;
 let analyser   = null;
-let levelRaf   = null; // requestAnimationFrame para el medidor de nivel
+let levelRaf   = null;
+
+const sendJSON = (obj) => {
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify(obj));
+  }
+};
 
 // ── Lista de oyentes ──────────────────────────────────────────────────────────
 
@@ -74,49 +82,63 @@ const renderListenersList = (list) => {
   });
 };
 
-// ── WebSocket ─────────────────────────────────────────────────────────────────
+// ── WebSocket con reconexión ─────────────────────────────────────────────────
 
-socket.addEventListener("open", () => {
-  socket.send(JSON.stringify({ type: "adminConnect" }));
-});
+const connectSocket = () => {
+  socket = new WebSocket(wsUrl);
 
-socket.addEventListener("message", (event) => {
-  const data = JSON.parse(event.data);
-  if (data.type === "djLocked") {
-    const banner = document.getElementById("dj-locked-banner");
-    const text = document.getElementById("dj-locked-text");
-    if (banner) banner.style.display = "flex";
-    if (text) text.textContent = `${data.dj} está controlando la radio en este momento`;
-    elements.btnPauseResume.disabled = true;
-    elements.btnNext.disabled = true;
-    elements.btnAd.disabled = true;
-    if (elements.btnToggleMixer) elements.btnToggleMixer.disabled = true;
-    if (elements.btnDetect) elements.btnDetect.disabled = true;
-    if (elements.volumeSlider) elements.volumeSlider.disabled = true;
-    document.querySelectorAll(".btn-play-song, .btn-play-ad, .btn-play-playlist").forEach((b) => {
-      b.disabled = true;
-    });
-  } else if (data.type === "nowPlaying") {
-    updateNowPlaying(data);
-    if (data.mixerMode && !mixerMode) {
-      updateMixerUI(true);
-      showHint("El mixer estaba al aire. Detecta los dispositivos y actívalo de nuevo.");
+  socket.addEventListener("open", () => {
+    reconnectAttempts = 0;
+    sendJSON({ type: "adminConnect" });
+    loadPlaylists();
+  });
+
+  socket.addEventListener("message", (event) => {
+    const data = JSON.parse(event.data);
+    if (data.type === "djLocked") {
+      const banner = document.getElementById("dj-locked-banner");
+      const text = document.getElementById("dj-locked-text");
+      if (banner) banner.style.display = "flex";
+      if (text) text.textContent = `${data.dj} está controlando la radio en este momento`;
+      elements.btnPauseResume.disabled = true;
+      elements.btnNext.disabled = true;
+      elements.btnAd.disabled = true;
+      if (elements.btnToggleMixer) elements.btnToggleMixer.disabled = true;
+      if (elements.btnDetect) elements.btnDetect.disabled = true;
+      if (elements.volumeSlider) elements.volumeSlider.disabled = true;
+      document.querySelectorAll(".btn-play-song, .btn-play-ad, .btn-play-playlist").forEach((b) => {
+        b.disabled = true;
+      });
+    } else if (data.type === "nowPlaying") {
+      updateNowPlaying(data);
+      if (data.mixerMode && !mixerMode) {
+        updateMixerUI(true);
+        showHint("El mixer estaba al aire. Detecta los dispositivos y actívalo de nuevo.");
+      }
+    } else if (data.type === "listenersList") {
+      elements.listenersCount.textContent = data.count;
+      renderListenersList(data.listeners);
+    } else if (data.type === "radioState") {
+      isPaused = data.paused;
+      updatePauseResumeButton();
+      if (isPaused) {
+        elements.adminAudio.pause();
+      } else if (elements.adminAudio.src) {
+        elements.adminAudio.play().catch(() => {});
+      }
+    } else if (data.type === "mixerState") {
+      updateMixerUI(data.active);
     }
-  } else if (data.type === "listenersList") {
-    elements.listenersCount.textContent = data.count;
-    renderListenersList(data.listeners);
-  } else if (data.type === "radioState") {
-    isPaused = data.paused;
-    updatePauseResumeButton();
-    if (isPaused) {
-      elements.adminAudio.pause();
-    } else if (elements.adminAudio.src) {
-      elements.adminAudio.play().catch(() => {});
-    }
-  } else if (data.type === "mixerState") {
-    updateMixerUI(data.active);
-  }
-});
+  });
+
+  socket.addEventListener("close", () => {
+    const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+    reconnectAttempts++;
+    setTimeout(connectSocket, delay);
+  });
+
+  socket.addEventListener("error", () => {});
+};
 
 // ── Reproductor / Now Playing ─────────────────────────────────────────────────
 
@@ -164,19 +186,19 @@ const updatePauseResumeButton = () => {
 };
 
 elements.btnPauseResume.addEventListener("click", () => {
-  socket.send(JSON.stringify({ type: isPaused ? "adminResume" : "adminPause" }));
+  sendJSON({ type: isPaused ? "adminResume" : "adminPause" });
 });
 
 elements.btnNext.addEventListener("click", () => {
-  socket.send(JSON.stringify({ type: "adminNext" }));
+  sendJSON({ type: "adminNext" });
 });
 
 elements.btnAd.addEventListener("click", () => {
-  socket.send(JSON.stringify({ type: "adminAd" }));
+  sendJSON({ type: "adminAd" });
 });
 
 elements.adminAudio.addEventListener("ended", () => {
-  socket.send(JSON.stringify({ type: "adminNext" }));
+  sendJSON({ type: "adminNext" });
 });
 
 // Buscador de canciones
@@ -195,7 +217,7 @@ if (songsSearch) {
 document.querySelectorAll(".btn-play-song").forEach((btn) => {
   btn.addEventListener("click", () => {
     const path = btn.dataset.path;
-    socket.send(JSON.stringify({ type: "adminPlay", path }));
+    sendJSON({ type: "adminPlay", path });
     document.querySelectorAll(".radio__song-item").forEach((item) => {
       item.classList.remove("radio__song-item--active");
     });
@@ -207,7 +229,7 @@ document.querySelectorAll(".btn-play-song").forEach((btn) => {
 document.querySelectorAll(".btn-play-ad").forEach((btn) => {
   btn.addEventListener("click", () => {
     const path = btn.dataset.path;
-    socket.send(JSON.stringify({ type: "adminPlayAd", path }));
+    sendJSON({ type: "adminPlayAd", path });
     document.querySelectorAll(".radio__song-item").forEach((item) => {
       item.classList.remove("radio__song-item--active");
     });
@@ -220,7 +242,7 @@ document.querySelectorAll(".btn-play-ad").forEach((btn) => {
 elements.volumeSlider.addEventListener("input", () => {
   const vol = Number(elements.volumeSlider.value) / 100;
   elements.volumeValue.textContent = elements.volumeSlider.value + "%";
-  socket.send(JSON.stringify({ type: "adminVolume", value: vol }));
+  sendJSON({ type: "adminVolume", value: vol });
 });
 
 // ── Detección de dispositivos ─────────────────────────────────────────────────
@@ -241,7 +263,6 @@ const populateDevices = async () => {
   });
   elements.inputSelect.disabled = false;
 
-  // Restaurar el último dispositivo usado o auto-seleccionar el primero disponible
   const saved = savedId ? inputs.find((d) => d.deviceId === savedId) : null;
   const first = inputs.find((d) => d.deviceId !== "default" && d.deviceId !== "communications");
   const toSelect = saved || first;
@@ -274,7 +295,6 @@ elements.btnDetect.addEventListener("click", async () => {
   elements.detectIcon.classList.add("fa-spin");
   elements.btnDetect.disabled = true;
   try {
-    // getUserMedia es necesario para que el navegador revele los labels de los dispositivos
     const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     tempStream.getTracks().forEach((t) => t.stop());
     await populateDevices();
@@ -286,7 +306,6 @@ elements.btnDetect.addEventListener("click", async () => {
   }
 });
 
-// Auto-detectar al cargar si el navegador ya tiene permisos de sesiones previas
 navigator.mediaDevices.enumerateDevices().then((devices) => {
   if (devices.some((d) => d.kind === "audioinput" && d.label)) {
     populateDevices();
@@ -294,9 +313,6 @@ navigator.mediaDevices.enumerateDevices().then((devices) => {
 }).catch(() => {});
 
 // ── Modo Mixer ────────────────────────────────────────────────────────────────
-// Cuando está activo: los oyentes reciben la entrada de audio seleccionada (micrófono/mixer/USB).
-// El adminAudio sigue reproduciendo canciones localmente para que el admin escuche.
-// Cuando está inactivo: los oyentes reciben las canciones del reproductor normalmente.
 
 const startMixerMode = async () => {
   if (mixerMode) return;
@@ -338,14 +354,12 @@ const startMixerMode = async () => {
     });
 
     mixerRecorder.ondataavailable = (e) => {
-      if (e.data.size > 0 && socket.readyState === WebSocket.OPEN) {
+      if (e.data.size > 0 && socket && socket.readyState === WebSocket.OPEN) {
         socket.send(e.data);
       }
     };
 
-    // Notificar primero para que el servidor entre en mixerMode antes de recibir datos binarios
-    socket.send(JSON.stringify({ type: "adminMixerStart" }));
-    // Asegurar que el AudioContext está corriendo (Chrome puede iniciarlo suspendido)
+    sendJSON({ type: "adminMixerStart" });
     await audioCtx.resume();
     mixerRecorder.start(100);
     mixerMode = true;
@@ -377,7 +391,7 @@ const stopMixerMode = () => {
     analyser = null;
   }
 
-  socket.send(JSON.stringify({ type: "adminMixerStop" }));
+  sendJSON({ type: "adminMixerStop" });
   updateMixerUI(false);
 };
 
@@ -490,27 +504,70 @@ const renderPlaylists = (playlists) => {
     const item = document.createElement("div");
     item.className = "radio__playlist-item";
     item.dataset.id = playlist.id;
-    item.innerHTML = `
-      <div class="radio__playlist-info">
-        <span class="radio__playlist-name">${playlist.name}</span>
-        <span class="radio__playlist-count">${playlist.songs.length} canciones</span>
-      </div>
-      <div class="radio__playlist-actions">
-        <button class="radio__btn radio__btn--play btn-play-playlist" data-id="${playlist.id}">
+
+    const songsHtml = playlist.songs.map((s) => {
+      const songPath = decodeURIComponent(s.filepath).replace("public/", "");
+      return `<div class="radio__playlist-song" data-path="${songPath}">
+        <span class="radio__song-filename">${s.filename}</span>
+        <button class="radio__btn radio__btn--play btn-playlist-song-play" data-path="${songPath}">
           <i class="fas fa-play"></i>
         </button>
-        <button class="radio__btn radio__btn--delete btn-delete-playlist" data-id="${playlist.id}">
-          <i class="fas fa-trash"></i>
-        </button>
+      </div>`;
+    }).join("");
+
+    item.innerHTML = `
+      <div class="radio__playlist-header">
+        <div class="radio__playlist-info">
+          <span class="radio__playlist-name">${playlist.name}</span>
+          <span class="radio__playlist-count">${playlist.songs.length} canciones</span>
+        </div>
+        <div class="radio__playlist-actions">
+          <button class="radio__btn radio__btn--play btn-play-playlist" data-id="${playlist.id}" title="Reproducir playlist">
+            <i class="fas fa-play"></i>
+          </button>
+          <button class="radio__btn radio__btn--delete btn-delete-playlist" data-id="${playlist.id}" title="Eliminar playlist">
+            <i class="fas fa-trash"></i>
+          </button>
+          <button class="radio__btn radio__btn--secondary btn-toggle-songs" title="Ver canciones" style="padding:0.5rem 0.7rem;font-size:1.1rem">
+            <i class="fas fa-chevron-down"></i>
+          </button>
+        </div>
+      </div>
+      <div class="radio__playlist-songs" style="display:none">
+        ${songsHtml || '<p class="radio__empty" style="padding:1rem">Sin canciones</p>'}
       </div>
     `;
     elements.playlistsContainer.appendChild(item);
   });
 
+  document.querySelectorAll(".btn-toggle-songs").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const item = btn.closest(".radio__playlist-item");
+      const songsList = item.querySelector(".radio__playlist-songs");
+      const icon = btn.querySelector("i");
+      const hidden = songsList.style.display === "none";
+      songsList.style.display = hidden ? "" : "none";
+      icon.className = hidden ? "fas fa-chevron-up" : "fas fa-chevron-down";
+    });
+  });
+
+  document.querySelectorAll(".radio__playlist-info").forEach((info) => {
+    info.addEventListener("click", () => {
+      const btn = info.closest(".radio__playlist-item").querySelector(".btn-toggle-songs");
+      if (btn) btn.click();
+    });
+  });
+
+  document.querySelectorAll(".btn-playlist-song-play").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      sendJSON({ type: "adminPlay", path: btn.dataset.path });
+    });
+  });
+
   document.querySelectorAll(".btn-play-playlist").forEach((btn) => {
     btn.addEventListener("click", () => {
       const playlistId = Number(btn.dataset.id);
-      socket.send(JSON.stringify({ type: "adminPlaylist", playlistId }));
+      sendJSON({ type: "adminPlaylist", playlistId });
       document.querySelectorAll(".radio__playlist-item").forEach((item) => {
         item.classList.remove("radio__playlist-item--active");
       });
@@ -533,9 +590,7 @@ const renderPlaylists = (playlists) => {
   });
 };
 
-loadPlaylists();
-
-// ── Toggle oyentes (colapsar/expandir) ──────────────���────────────────────────
+// ── Toggle oyentes (colapsar/expandir) ───────────────────────────────────────
 
 const listenersToggle = document.getElementById("listeners-toggle");
 const toggleIcon = document.getElementById("listeners-toggle-icon");
@@ -549,3 +604,7 @@ if (listenersToggle) {
     }
   });
 }
+
+// ── Iniciar conexión ─────────────────────────────────────────────────────────
+
+connectSocket();

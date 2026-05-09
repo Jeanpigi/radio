@@ -16,6 +16,18 @@ const { checkNetworkConnectivity } = require("../middleware/checkNetwork");
 
 const { musicUpload } = require("../utils/multerConfig");
 
+const handleMusicUpload = (req, res, next) => {
+  musicUpload(req, res, (err) => {
+    if (err) {
+      return res.redirect("/canciones?error=" + encodeURIComponent(err.message));
+    }
+    if (!req.files || req.files.length === 0) {
+      return res.redirect("/canciones?error=" + encodeURIComponent("No se seleccionaron archivos válidos"));
+    }
+    next();
+  });
+};
+
 // Rutas de canciones
 router.get("/canciones", verificarSesion, getAll, controlInactividad);
 
@@ -23,7 +35,7 @@ router.post(
   "/canciones",
   verificarSesion,
   checkNetworkConnectivity,
-  musicUpload,
+  handleMusicUpload,
   insertSong,
   controlInactividad
 );
