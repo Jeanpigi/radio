@@ -1,17 +1,25 @@
 const multer = require("multer");
 
+const fixEncoding = (name) => {
+  try {
+    return Buffer.from(name, "latin1").toString("utf8");
+  } catch {
+    return name;
+  }
+};
+
 // Función de almacenamiento genérica
 const storage = (destination) =>
   multer.diskStorage({
     destination: (req, file, cb) => cb(null, destination),
     filename: (req, file, cb) => {
-      cb(null, `${file.originalname}`);
+      cb(null, fixEncoding(file.originalname));
     },
   });
 
 // Función para filtrar extensiones
 const fileFilter = (allowedExtensions) => (req, file, cb) => {
-  const fileExtension = file.originalname.split(".").pop();
+  const fileExtension = fixEncoding(file.originalname).split(".").pop().toLowerCase();
   if (allowedExtensions.includes(fileExtension)) {
     cb(null, true);
   } else {
