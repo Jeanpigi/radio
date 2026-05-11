@@ -19,10 +19,27 @@ let settings = {
 let baseVolume = 1;
 let inMixerMode = false;
 let talkAudio = null;
+let pendingPlayerPlay = false;
 
 const wsUrl = `ws://${window.location.host}`;
 let socket;
 let reconnectDelay = 1000;
+
+const tryPlayerPlay = () => {
+  elements.audioPlayer.play().catch(() => {
+    pendingPlayerPlay = true;
+  });
+};
+
+document.addEventListener("click", () => {
+  if (!pendingPlayerPlay) return;
+  if (talkAudio) {
+    talkAudio.play().catch(() => {});
+  } else if (elements.audioPlayer.src) {
+    elements.audioPlayer.play().catch(() => {});
+  }
+  pendingPlayerPlay = false;
+});
 
 const init = () => {
   elements.range.disabled = true;
@@ -50,7 +67,9 @@ const connectWebSocket = () => {
       elements.audioPlayer.pause();
       talkAudio = new Audio("/stream/mixer");
       talkAudio.volume = baseVolume;
-      talkAudio.play().catch(() => {});
+      talkAudio.play().catch(() => {
+        pendingPlayerPlay = true;
+      });
     } else if (data.type === "mixerStop") {
       inMixerMode = false;
       if (talkAudio) {
@@ -106,7 +125,7 @@ const handlePlay = (path, currentTime) => {
   const onCanPlay = () => {
     elements.audioPlayer.removeEventListener("canplay", onCanPlay);
     if (currentTime > 1) elements.audioPlayer.currentTime = currentTime;
-    elements.audioPlayer.play().catch(() => {});
+    tryPlayerPlay();
     changeSongTitle(path);
     updateControls();
     if (!settings.isRotating) {

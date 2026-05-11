@@ -28,6 +28,21 @@ const elements = {
 };
 
 let isPaused = false;
+let pendingAdminPlay = false;
+
+const tryAdminPlay = () => {
+  if (!elements.adminAudio.src) return;
+  elements.adminAudio.play().catch(() => {
+    pendingAdminPlay = true;
+  });
+};
+
+document.addEventListener("click", () => {
+  if (pendingAdminPlay && elements.adminAudio.src) {
+    elements.adminAudio.play().catch(() => {});
+    pendingAdminPlay = false;
+  }
+});
 
 // Entrada de audio seleccionada (micrófono, mixer USB, etc.)
 let selectedInputId = null;
@@ -124,7 +139,7 @@ const connectSocket = () => {
       if (isPaused) {
         elements.adminAudio.pause();
       } else if (elements.adminAudio.src) {
-        elements.adminAudio.play().catch(() => {});
+        tryAdminPlay();
       }
     } else if (data.type === "mixerState") {
       updateMixerUI(data.active);
@@ -160,7 +175,7 @@ const updateNowPlaying = (data) => {
     elements.btnPauseResume.disabled = false;
     elements.adminAudio.src = path;
     elements.adminAudio.load();
-    if (!paused) elements.adminAudio.play().catch(() => {});
+    if (!paused) tryAdminPlay();
 
     const selector = kind === "ad" ? ".radio__ad-item" : ".radio__song-item:not(.radio__ad-item)";
     document.querySelectorAll(selector).forEach((item) => {
