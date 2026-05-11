@@ -34,10 +34,12 @@ const addSongsToPlaylist = (playlistId, songIds) => {
 const getAllPlaylists = () => {
   return new Promise((resolve, reject) => {
     const sql = `
-      SELECT playlists.id AS playlist_id, playlists.name AS playlist_name, canciones.id AS song_id, canciones.filename, canciones.filepath
-      FROM playlist_songs
-      INNER JOIN playlists ON playlist_songs.playlist_id = playlists.id
-      INNER JOIN canciones ON playlist_songs.song_id = canciones.id;
+      SELECT playlists.id AS playlist_id, playlists.name AS playlist_name,
+             canciones.id AS song_id, canciones.filename, canciones.filepath
+      FROM playlists
+      LEFT JOIN playlist_songs ON playlists.id = playlist_songs.playlist_id
+      LEFT JOIN canciones ON playlist_songs.song_id = canciones.id
+      ORDER BY playlists.id;
     `;
 
     db.all(sql, [], (err, rows) => {
@@ -45,8 +47,7 @@ const getAllPlaylists = () => {
         reject(err);
       } else {
         const playlists = rows.reduce((acc, row) => {
-          const { playlist_id, playlist_name, song_id, filename, filepath } =
-            row;
+          const { playlist_id, playlist_name, song_id, filename, filepath } = row;
           if (!acc[playlist_id]) {
             acc[playlist_id] = {
               id: playlist_id,
@@ -54,7 +55,9 @@ const getAllPlaylists = () => {
               songs: [],
             };
           }
-          acc[playlist_id].songs.push({ id: song_id, filename, filepath });
+          if (song_id) {
+            acc[playlist_id].songs.push({ id: song_id, filename, filepath });
+          }
           return acc;
         }, {});
         resolve(Object.values(playlists));

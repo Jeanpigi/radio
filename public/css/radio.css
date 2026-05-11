@@ -557,13 +557,12 @@
 /* ── Playlist items (in radio panel) ── */
 .radio__playlist-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   padding: 0.9rem 0.8rem;
   border-radius: var(--radius-sm);
   border: 1.5px solid transparent;
   margin-bottom: 0.4rem;
-  gap: 0.6rem;
+  gap: 0.4rem;
   transition: background 0.12s, border-color 0.12s;
 }
 

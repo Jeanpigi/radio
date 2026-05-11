@@ -605,6 +605,7 @@ if (listenersToggle) {
   });
 }
 
-// ── Iniciar conexión ─────────────────────────────────────────────────────────
+// ── Iniciar conexión y cargar datos ───────────────────────────────────────────
 
+loadPlaylists();
 connectSocket();
