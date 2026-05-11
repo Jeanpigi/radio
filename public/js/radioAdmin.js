@@ -307,6 +307,10 @@ elements.inputSelect.addEventListener("change", () => {
 });
 
 elements.btnDetect.addEventListener("click", async () => {
+  if (!navigator.mediaDevices) {
+    showHint("El mixer requiere HTTPS.");
+    return;
+  }
   elements.detectIcon.classList.add("fa-spin");
   elements.btnDetect.disabled = true;
   try {
@@ -321,17 +325,27 @@ elements.btnDetect.addEventListener("click", async () => {
   }
 });
 
-navigator.mediaDevices.enumerateDevices().then((devices) => {
-  if (devices.some((d) => d.kind === "audioinput" && d.label)) {
-    populateDevices();
-  }
-}).catch(() => {});
+if (navigator.mediaDevices) {
+  navigator.mediaDevices.enumerateDevices().then((devices) => {
+    if (devices.some((d) => d.kind === "audioinput" && d.label)) {
+      populateDevices();
+    }
+  }).catch(() => {});
+} else {
+  showHint("El mixer requiere HTTPS. Las demás funciones operan con normalidad.");
+  elements.btnDetect.disabled = true;
+  elements.btnToggleMixer.disabled = true;
+}
 
 // ── Modo Mixer ────────────────────────────────────────────────────────────────
 
 const startMixerMode = async () => {
   if (mixerMode) return;
   if (!selectedInputId) return;
+  if (!navigator.mediaDevices) {
+    showHint("El mixer requiere HTTPS.");
+    return;
+  }
   try {
     mixerStream = await navigator.mediaDevices.getUserMedia({
       audio: {
