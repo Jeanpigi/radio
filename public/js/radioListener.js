@@ -1,4 +1,5 @@
-const wsUrl = `ws://${window.location.host}`;
+const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+const wsUrl = `${wsProtocol}://${window.location.host}`;
 
 const audio     = document.getElementById("listener-audio");
 const btnPlay   = document.getElementById("btn-play");
@@ -81,7 +82,14 @@ const connectWebSocket = () => {
   socket.addEventListener("message", (event) => {
     const data = JSON.parse(event.data);
 
-    if (data.type === "play" || data.type === "playAd" || data.type === "himno") {
+    if (data.type === "himno") {
+      if (inMixerMode) {
+        inMixerMode = false;
+        talkBanner.classList.remove("talk-banner--active");
+      }
+      loadTrack(data.path, data.currentTime || 0);
+
+    } else if (data.type === "play" || data.type === "playAd") {
       if (!inMixerMode) loadTrack(data.path, data.currentTime || 0);
 
     } else if (data.type === "pause") {

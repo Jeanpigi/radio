@@ -81,8 +81,31 @@ const socketHandler = (server) => {
     }, durationMs);
   };
 
+  let preHimnoState = null;
+
   const advanceToNextSong = async () => {
     try {
+      // Después del himno, restaurar el estado previo si había algo sonando
+      if (radioState.type === "himno" && preHimnoState) {
+        const prev = preHimnoState;
+        preHimnoState = null;
+
+        if (prev.playlistActive) {
+          playlistState.active = true;
+          playlistState.name = prev.playlistName;
+          playlistState.songs = prev.playlistSongs;
+          playlistState.currentIndex = prev.playlistIndex;
+        }
+
+        if (prev.mixerMode && adminWs && adminWs.readyState === WebSocket.OPEN) {
+          radioState.mixerMode = true;
+          broadcastToListeners({ type: "mixerStart" });
+          notifyAdmin({ type: "mixerState", active: true });
+          console.log("[Himno] Restaurando modo mixer");
+          return;
+        }
+      }
+
       if (playlistState.active) {
         playlistState.currentIndex++;
         if (playlistState.currentIndex < playlistState.songs.length) {
@@ -117,13 +140,36 @@ const socketHandler = (server) => {
     }
   };
 
-  const horasHimno = ["0 6 * * *", "0 12 * * *", "0 18 * * *"];
+  const horasHimno = ["0 0 * * *", "0 6 * * *", "0 12 * * *", "0 18 * * *"];
   for (const hora of horasHimno) {
     cron.schedule(hora, () => {
-      const himnoPath = "himno/HimnoNacional.mp3";
-      setRadioState(himnoPath, "himno");
-      broadcastToListeners({ type: "himno", path: himnoPath, currentTime: 0 });
-      notifyAdmin({ type: "nowPlaying", path: himnoPath, kind: "himno" });
+      try {
+        console.log(`[Himno] Reproduciendo himno nacional (${hora})`);
+
+        preHimnoState = {
+          path: radioState.path,
+          type: radioState.type,
+          mixerMode: radioState.mixerMode,
+          playlistActive: playlistState.active,
+          playlistName: playlistState.name,
+          playlistSongs: [...playlistState.songs],
+          playlistIndex: playlistState.currentIndex,
+        };
+
+        if (radioState.mixerMode) {
+          radioState.mixerMode = false;
+          mixerStream.reset();
+          broadcastToListeners({ type: "mixerStop" });
+          notifyAdmin({ type: "mixerState", active: false });
+        }
+
+        const himnoPath = "himno/HimnoNacional.mp3";
+        setRadioState(himnoPath, "himno");
+        broadcastToListeners({ type: "himno", path: himnoPath, currentTime: 0 });
+        notifyAdmin({ type: "nowPlaying", path: himnoPath, kind: "himno" });
+      } catch (err) {
+        console.error("[Himno] Error al reproducir himno:", err);
+      }
     }, { timezone: "America/Bogota" });
   }
 
