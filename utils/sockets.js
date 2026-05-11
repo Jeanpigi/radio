@@ -19,6 +19,19 @@ const socketHandler = (server) => {
   let adminWs = null;
   let djUsername = null;
 
+  // Ping/pong para mantener conexiones vivas y detectar muertas
+  const PING_INTERVAL = 30000;
+  const pingInterval = setInterval(() => {
+    wss.clients.forEach((ws) => {
+      if (ws.isAlive === false) {
+        ws.terminate();
+        return;
+      }
+      ws.isAlive = false;
+      ws.ping();
+    });
+  }, PING_INTERVAL);
+
   const recentlyPlayedSongs = [];
   const recentlyPlayedAds = [];
 
@@ -161,7 +174,14 @@ const socketHandler = (server) => {
     }
   };
 
+  wss.on("close", () => {
+    clearInterval(pingInterval);
+  });
+
   wss.on("connection", (ws, req) => {
+    ws.isAlive = true;
+    ws.on("pong", () => { ws.isAlive = true; });
+
     const ip = getClientIp(req);
     const userAgent = req.headers["user-agent"] || "";
     const device = parseUserAgent(userAgent);

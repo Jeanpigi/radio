@@ -173,9 +173,13 @@ const updateNowPlaying = (data) => {
       elements.nowPlayingTitle.textContent = filename;
     }
     elements.btnPauseResume.disabled = false;
-    elements.adminAudio.src = path;
-    elements.adminAudio.load();
-    if (!paused) tryAdminPlay();
+
+    const currentSrc = elements.adminAudio.src ? new URL(elements.adminAudio.src, window.location.origin).pathname.replace(/^\//, "") : "";
+    if (currentSrc !== path) {
+      elements.adminAudio.src = path;
+      elements.adminAudio.load();
+    }
+    if (!paused && elements.adminAudio.paused) tryAdminPlay();
 
     const selector = kind === "ad" ? ".radio__ad-item" : ".radio__song-item:not(.radio__ad-item)";
     document.querySelectorAll(selector).forEach((item) => {
